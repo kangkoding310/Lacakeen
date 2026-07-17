@@ -17,13 +17,30 @@ const submit = () => {
 </script>
 
 <template>
-    <Modal :open="open" title="Create project" description="Set up a dedicated workspace for your team's work." @close="$emit('close')">
+    <Modal :open="open" title="Create project" description="Set up a dedicated workspace for your team's work."
+        @close="$emit('close')">
         <form class="space-y-4" @submit.prevent="submit">
-            <div><label class="ui-label">Project name</label><input v-model="form.name" class="ui-input" autofocus required placeholder="e.g. Mobile application" /><InputError class="mt-1" :message="form.errors.name" /></div>
-            <div class="grid grid-cols-[1fr_80px] gap-3"><div><label class="ui-label">Prefix</label><input v-model="form.prefix" class="ui-input uppercase" maxlength="12" required placeholder="APP" /><InputError class="mt-1" :message="form.errors.prefix" /></div><div><label class="ui-label">Color</label><input v-model="form.color" type="color" class="ui-input p-1" /></div></div>
-            <div><label class="ui-label">Description</label><textarea v-model="form.description" class="ui-input min-h-24 resize-y py-2" placeholder="What will this project deliver?" /></div>
+            <div><label class="ui-label">Project name</label><input v-model="form.name" class="ui-input" autofocus
+                    required placeholder="e.g. Mobile application" />
+                <InputError class="mt-1" :message="form.errors.name" />
+            </div>
+            <div class="grid grid-cols-[1fr_80px] gap-3">
+                <div>
+                    <label class="ui-label">Prefix</label>
+                    <input v-model="form.prefix" class="ui-input uppercase" maxlength="12" required placeholder="APP"
+                        @input="form.prefix = form.prefix.replace(/[^a-zA-Z0-9]/g, '')" />
+                    <InputError class="mt-1" :message="form.errors.prefix" />
+                </div>
+                <div><label class="ui-label">Color</label><input v-model="form.color" type="color"
+                        class="ui-input p-1" /></div>
+            </div>
+            <div><label class="ui-label">Description</label><textarea v-model="form.description"
+                    class="ui-input min-h-24 resize-y py-2" placeholder="What will this project deliver?" /></div>
             <InputError :message="form.errors.workspace_id" />
-            <div class="flex justify-end gap-2"><button type="button" class="ui-button-secondary" @click="$emit('close')">Cancel</button><button class="ui-button-primary" :disabled="form.processing || !workspace">{{ form.processing ? 'Creating…' : 'Create project' }}</button></div>
+            <div class="flex justify-end gap-2"><button type="button" class="ui-button-secondary"
+                    @click="$emit('close')">Cancel</button><button class="ui-button-primary"
+                    :disabled="form.processing || !workspace">{{ form.processing ? 'Creating…' : 'Create project'
+                    }}</button></div>
         </form>
     </Modal>
 </template>

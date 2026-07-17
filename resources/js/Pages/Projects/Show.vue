@@ -35,7 +35,7 @@ const tabs = [
     { id: 'list', label: 'List', icon: List }, { id: 'calendar', label: 'Calendar', icon: CalendarDays },
     { id: 'timeline', label: 'Timeline', icon: ChartNoAxesGantt },
 ];
-const memberOptions = computed(() => props.availableMembers.map((user) => ({ value: user.id, label: `${user.name} · ${user.email}` })));
+const memberOptions = computed(() => props.availableMembers.map((user) => ({ value: user.id, label: `${user.name} ${user.email}` })));
 const roleOptions = [{ value: 'owner', label: 'Owner' }, { value: 'editor', label: 'Editor' }, { value: 'viewer', label: 'Viewer' }];
 const currentMembership = computed(() => props.project.members.find((user) => user.id === page.props.auth.user.id));
 const isAdmin = computed(() => page.props.auth.user.roles.some((role) => role.name === 'admin'));
@@ -157,7 +157,7 @@ onBeforeUnmount(() => { document.removeEventListener('pointerdown', closeMenu); 
                         </form>
                         <div class="max-h-80 divide-y divide-slate-100 overflow-y-auto">
                             <div v-for="user in project.members" :key="user.id" class="flex items-center gap-3 p-3"><img
-                                    :src="user.avatar" class="h-9 w-9 rounded-xl object-cover" />
+                                    :src="user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`" class="h-9 w-9 rounded-xl object-cover" />
                                 <div class="min-w-0 flex-1">
                                     <p class="truncate text-xs font-bold">{{ user.name }}</p>
                                     <p class="truncate text-[10px] text-slate-400">{{ user.email }}</p>
@@ -263,7 +263,7 @@ onBeforeUnmount(() => { document.removeEventListener('pointerdown', closeMenu); 
                 </div>
                 <div class="grid grid-cols-[1fr_80px] gap-3">
                     <div><label class="ui-label">Prefix</label><input v-model="edit.prefix" class="ui-input uppercase"
-                            maxlength="12" required /></div>
+                            maxlength="12" required @input="edit.prefix = edit.prefix.replace(/[^a-zA-Z0-9]/g, '')" /></div>
                     <div><label class="ui-label">Color</label><input v-model="edit.color" type="color"
                             class="ui-input p-1" />
                     </div>
