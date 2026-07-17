@@ -1,17 +1,22 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Modal from '@/Components/ui/Modal.vue';
+import type { WorkspaceListItem } from '@/types/workspace';
+import type { TaskAssignee } from '@/types/task';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowRight, Building2, FolderKanban, Plus, Users } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
-const props = defineProps({ workspaces: Array, availableOwners: Array });
+const props = defineProps<{ workspaces: WorkspaceListItem[]; availableOwners: TaskAssignee[] }>();
 const createOpen = ref(false);
-const create = useForm({ name: '', owner_id: '' });
+const create = useForm({ name: '', owner_id: '' as number | '' });
 const ownerOptions = computed(() =>
-    props.availableOwners.map((owner) => ({ value: owner.id, label: `${owner.name} (${owner.email})` }))
+    props.availableOwners.map((owner) => ({
+        value: owner.id,
+        label: `${owner.name} (${owner.email})`,
+    }))
 );
 
 const submitCreate = () =>
@@ -47,7 +52,9 @@ const submitCreate = () =>
                     class="ui-card group block p-5 transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                     <div class="flex items-start justify-between">
-                        <div class="grid h-11 w-11 place-items-center rounded-xl bg-blue-600 text-white">
+                        <div
+                            class="grid h-11 w-11 place-items-center rounded-xl bg-blue-600 text-white"
+                        >
                             <Building2 class="h-5 w-5" />
                         </div>
                         <ArrowRight class="h-4 w-4 text-slate-300" />
@@ -58,10 +65,16 @@ const submitCreate = () =>
                         class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-slate-400"
                     >
                         <span class="flex items-center gap-1"
-                            ><Users class="h-3.5 w-3.5" />{{ workspace.members_count }} members</span
+                            ><Users class="h-3.5 w-3.5" />{{
+                                workspace.members_count
+                            }}
+                            members</span
                         >
                         <span class="flex items-center gap-1"
-                            ><FolderKanban class="h-3.5 w-3.5" />{{ workspace.projects_count }} projects</span
+                            ><FolderKanban class="h-3.5 w-3.5" />{{
+                                workspace.projects_count
+                            }}
+                            projects</span
                         >
                     </div>
                 </Link>

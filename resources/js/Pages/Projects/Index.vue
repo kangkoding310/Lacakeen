@@ -1,9 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Modal from '@/Components/ui/Modal.vue';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { usePermissions } from '@/composables/usePermissions';
+import { projectService } from '@/services/projectService';
+import type { ProjectListItem } from '@/types/project';
+import type { WorkspaceSummary } from '@/types/models';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     Archive,
     ArchiveRestore,
@@ -15,11 +19,11 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
-const props = defineProps({ projects: Array, workspace: Object });
-const page = usePage();
+const props = defineProps<{ projects: ProjectListItem[]; workspace: WorkspaceSummary | null }>();
+const { canManageProject, canDeleteProject, canCreateProjectIn } = usePermissions();
 const createOpen = ref(false);
 const editOpen = ref(false);
-const filter = ref('active');
+const filter = ref<'active' | 'archived'>('active');
 const create = useForm({
     name: '',
     prefix: '',
@@ -28,23 +32,13 @@ const create = useForm({
     workspace_id: props.workspace?.id || '',
 });
 const edit = useForm({ name: '', prefix: '', description: '', color: '#2563EB' });
-const editingProject = ref(null);
+const editingProject = ref<ProjectListItem | null>(null);
 const filteredProjects = computed(() =>
     props.projects.filter((project) => project.status === filter.value)
 );
-const projectRole = (project) =>
-    project.members.find((member) => member.id === page.props.auth.user.id)?.pivot?.role_in_project;
-const canManage = (project) =>
-    page.props.auth.user.roles.some((role) => role.name === 'admin') ||
-    ['owner', 'editor'].includes(projectRole(project));
-const canDelete = (project) =>
-    page.props.auth.user.roles.some((role) => role.name === 'admin') ||
-    projectRole(project) === 'owner';
-const canCreate = computed(
-    () =>
-        page.props.auth.user.roles.some((role) => role.name === 'admin') ||
-        props.workspace?.owner_id === page.props.auth.user.id
-);
+const canManage = (project: ProjectListItem) => canManageProject(project.members);
+const canDelete = (project: ProjectListItem) => canDeleteProject(project.members);
+const canCreate = computed(() => canCreateProjectIn(props.workspace));
 
 const submitCreate = () =>
     create.post(route('projects.store'), {
@@ -53,7 +47,7 @@ const submitCreate = () =>
             create.reset();
         },
     });
-const startEdit = (project) => {
+const startEdit = (project: ProjectListItem) => {
     editingProject.value = project;
     edit.defaults({
         name: project.name,
@@ -65,21 +59,21 @@ const startEdit = (project) => {
     editOpen.value = true;
 };
 const submitEdit = () =>
-    edit.patch(route('projects.update', editingProject.value.id), {
+    edit.patch(route('projects.update', editingProject.value!.id), {
         preserveScroll: true,
         onSuccess: () => {
             editOpen.value = false;
         },
     });
-const toggleArchive = (project) =>
-    router.patch(
-        route('projects.update', project.id),
+const toggleArchive = (project: ProjectListItem) =>
+    projectService.update(
+        project.id,
         { status: project.status === 'active' ? 'archived' : 'active' },
         { preserveScroll: true }
     );
-const remove = (project) => {
+const remove = (project: ProjectListItem) => {
     if (confirm(`Permanently delete “${project.name}” and all its tasks?`))
-        router.delete(route('projects.destroy', project.id));
+        projectService.destroy(project.id);
 };
 </script>
 

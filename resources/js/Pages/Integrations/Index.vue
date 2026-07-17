@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
+import type { Integration } from '@/types/integration';
 import { Head, router } from '@inertiajs/vue3';
 import {
     CalendarDays,
@@ -9,20 +10,21 @@ import {
     Settings2,
     Video,
 } from 'lucide-vue-next';
-const props = defineProps({ integrations: Array });
-const icons = {
+
+defineProps<{ integrations: Integration[] }>();
+const icons: Record<string, typeof MessageSquare> = {
     slack: MessageSquare,
     'google-calendar': CalendarDays,
     github: Github,
     zoom: Video,
 };
-const colors = {
+const colors: Record<string, string> = {
     slack: 'bg-violet-100 text-violet-700',
     'google-calendar': 'bg-blue-100 text-blue-700',
     github: 'bg-slate-900 text-white',
     zoom: 'bg-sky-100 text-sky-700',
 };
-const toggle = (integration) =>
+const toggle = (integration: Integration) =>
     router.patch(
         route('integrations.update', integration.id),
         { connected: integration.status !== 'connected' },

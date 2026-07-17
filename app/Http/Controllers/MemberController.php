@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Member\InviteMemberAction;
+use App\Actions\Member\UpdateMemberAction;
+use App\Http\Requests\Member\InviteMemberRequest;
+use App\Http\Requests\Member\UpdateMemberRequest;
 use App\Models\User;
-use App\Notifications\MemberInvitationNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -35,38 +33,16 @@ class MemberController extends Controller
         return Inertia::render('Members/Index', ['members' => $users, 'filters' => $filters, 'roles' => Role::pluck('name')]);
     }
 
-    public function invite(Request $request): RedirectResponse
+    public function invite(InviteMemberRequest $request, InviteMemberAction $action): RedirectResponse
     {
-        abort_unless($request->user()->can('manage users'), 403);
-        $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', Rule::exists('roles', 'name')],
-        ]);
-        $token = Str::random(64);
-        DB::table('member_invitations')->insert([
-            'id' => Str::uuid(), ...$validated, 'token' => hash('sha256', $token),
-            'invited_by' => $request->user()->id, 'expires_at' => now()->addDays(7),
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
-        Notification::route('mail', $validated['email'])->notify(new MemberInvitationNotification($token));
+        $action->handle($request->user(), $request->validated());
 
         return back()->with('success', 'Invitation sent.');
     }
 
-    public function update(Request $request, User $user): RedirectResponse
+    public function update(UpdateMemberRequest $request, User $user, UpdateMemberAction $action): RedirectResponse
     {
-        abort_unless($request->user()->can('manage users'), 403);
-        abort_if($request->user()->is($user) && $request->status === 'inactive', 422, 'You cannot deactivate yourself.');
-        $validated = $request->validate([
-            'role' => ['sometimes', Rule::exists('roles', 'name')],
-            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
-        ]);
-        if ($validated['role'] ?? null) {
-            $user->syncRoles([$validated['role']]);
-        }
-        if ($validated['status'] ?? null) {
-            $user->update(['status' => $validated['status']]);
-        }
+        $action->handle($request->user(), $user, $request->validated());
 
         return back()->with('success', 'Member updated.');
     }

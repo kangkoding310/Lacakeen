@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { Inbox } from 'lucide-vue-next';
-defineProps({
-    title: { type: String, default: 'Nothing here yet' },
-    description: { type: String, default: 'Create your first item to get started.' },
+withDefaults(defineProps<{ title?: string; description?: string }>(), {
+    title: 'Nothing here yet',
+    description: 'Create your first item to get started.',
 });
 </script>
 <template>

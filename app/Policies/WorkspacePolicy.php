@@ -29,6 +29,11 @@ class WorkspacePolicy
             || $workspace->members()->where('users.id', $user->id)->wherePivot('role', 'admin')->exists();
     }
 
+    public function createProject(User $user, Workspace $workspace): bool
+    {
+        return $workspace->owner_id === $user->id;
+    }
+
     public function delete(User $user, Workspace $workspace): bool
     {
         return $workspace->owner_id === $user->id;

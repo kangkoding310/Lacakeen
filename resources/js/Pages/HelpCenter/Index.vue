@@ -1,10 +1,10 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { BookOpen, LifeBuoy, Mail, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 const search = ref('');
-const faqs = [
+const faqs: [string, string][] = [
     [
         'How do I create and assign a task?',
         'Use the Create task button in the top bar, select a project and status, then choose one or more assignees.',

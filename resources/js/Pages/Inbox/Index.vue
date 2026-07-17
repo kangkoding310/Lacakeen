@@ -1,11 +1,24 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import type { NotificationItem } from '@/types/notification';
+import type { Paginated } from '@/types/pagination';
 import { Head, Link } from '@inertiajs/vue3';
 import { AtSign, CheckCircle2, Inbox, UserCheck } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-const props = defineProps({ items: Object });
-const filter = ref('all');
+
+const props = defineProps<{ items: Paginated<NotificationItem> }>();
+const filter = ref<'all' | 'unread' | 'mentions' | 'assigned'>('all');
+const filterTabs: {
+    id: 'all' | 'unread' | 'mentions' | 'assigned';
+    label: string;
+    icon: typeof Inbox;
+}[] = [
+    { id: 'all', label: 'Everything', icon: Inbox },
+    { id: 'unread', label: 'Unread', icon: CheckCircle2 },
+    { id: 'mentions', label: 'Mentions', icon: AtSign },
+    { id: 'assigned', label: 'Assigned to me', icon: UserCheck },
+];
 const filtered = computed(() =>
     props.items.data.filter(
         (item) =>
@@ -29,12 +42,7 @@ const filtered = computed(() =>
             <div class="mt-6 grid gap-4 lg:grid-cols-[220px_1fr]">
                 <aside class="ui-card h-fit p-2">
                     <button
-                        v-for="item in [
-                            { id: 'all', label: 'Everything', icon: Inbox },
-                            { id: 'unread', label: 'Unread', icon: CheckCircle2 },
-                            { id: 'mentions', label: 'Mentions', icon: AtSign },
-                            { id: 'assigned', label: 'Assigned to me', icon: UserCheck },
-                        ]"
+                        v-for="item in filterTabs"
                         :key="item.id"
                         class="flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold"
                         :class="

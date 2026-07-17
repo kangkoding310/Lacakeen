@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Workspace\AddWorkspaceMemberAction;
+use App\Actions\Workspace\RemoveWorkspaceMemberAction;
+use App\Actions\Workspace\UpdateWorkspaceAction;
+use App\Actions\Workspace\UpdateWorkspaceMemberRoleAction;
+use App\Http\Requests\Workspace\AddWorkspaceMemberRequest;
+use App\Http\Requests\Workspace\UpdateWorkspaceMemberRequest;
+use App\Http\Requests\Workspace\UpdateWorkspaceRequest;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -58,10 +63,9 @@ class WorkspaceController extends Controller
         ]);
     }
 
-    public function update(Request $request, Workspace $workspace): RedirectResponse
+    public function update(UpdateWorkspaceRequest $request, Workspace $workspace, UpdateWorkspaceAction $action): RedirectResponse
     {
-        $this->authorize('update', $workspace);
-        $workspace->update($request->validate(['name' => ['required', 'string', 'max:255']]));
+        $action->handle($workspace, $request->validated());
 
         return back()->with('success', 'Workspace updated.');
     }
@@ -76,36 +80,24 @@ class WorkspaceController extends Controller
             ->with('success', 'Workspace deleted.');
     }
 
-    public function addMember(Request $request, Workspace $workspace): RedirectResponse
+    public function addMember(AddWorkspaceMemberRequest $request, Workspace $workspace, AddWorkspaceMemberAction $action): RedirectResponse
     {
-        $this->authorize('update', $workspace);
-        $validated = $request->validate([
-            'user_id' => ['required', 'integer', 'exists:users,id', Rule::notIn([$workspace->owner_id])],
-            'role' => ['required', Rule::in(['admin', 'member'])],
-        ]);
-        $workspace->members()->syncWithoutDetaching([
-            $validated['user_id'] => ['id' => (string) Str::uuid(), 'role' => $validated['role']],
-        ]);
+        $action->handle($workspace, $request->validated());
 
         return back()->with('success', 'Workspace member added.');
     }
 
-    public function updateMember(Request $request, Workspace $workspace, User $user): RedirectResponse
+    public function updateMember(UpdateWorkspaceMemberRequest $request, Workspace $workspace, User $user, UpdateWorkspaceMemberRoleAction $action): RedirectResponse
     {
-        $this->authorize('update', $workspace);
-        abort_if($workspace->owner_id === $user->id, 422, 'The workspace owner must remain an owner.');
-        abort_unless($workspace->members()->where('users.id', $user->id)->exists(), 404);
-        $validated = $request->validate(['role' => ['required', Rule::in(['admin', 'member'])]]);
-        $workspace->members()->updateExistingPivot($user->id, $validated);
+        $action->handle($workspace, $user, $request->validated());
 
         return back()->with('success', 'Workspace role updated.');
     }
 
-    public function removeMember(Workspace $workspace, User $user): RedirectResponse
+    public function removeMember(Workspace $workspace, User $user, RemoveWorkspaceMemberAction $action): RedirectResponse
     {
         $this->authorize('update', $workspace);
-        abort_if($workspace->owner_id === $user->id, 422, 'The workspace owner cannot be removed.');
-        $workspace->members()->detach($user->id);
+        $action->handle($workspace, $user);
 
         return back()->with('success', 'Workspace member removed.');
     }

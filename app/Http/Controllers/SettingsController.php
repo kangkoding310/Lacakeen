@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Workspace\UpdateWorkspaceAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,10 +30,10 @@ class SettingsController extends Controller
         return back()->with('success', 'Notification preferences saved.');
     }
 
-    public function workspace(Request $request): RedirectResponse
+    public function workspace(Request $request, UpdateWorkspaceAction $action): RedirectResponse
     {
         $workspace = $request->user()->ownedWorkspaces()->firstOrFail();
-        $workspace->update($request->validate(['name' => ['required', 'string', 'max:255']]));
+        $action->handle($workspace, $request->validate(['name' => ['required', 'string', 'max:255']]));
 
         return back()->with('success', 'Workspace updated.');
     }

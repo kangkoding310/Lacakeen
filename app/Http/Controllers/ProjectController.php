@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Project\AddProjectMemberAction;
+use App\Actions\Project\CreateProjectAction;
+use App\Actions\Project\RemoveProjectMemberAction;
+use App\Actions\Project\UpdateProjectMemberRoleAction;
+use App\Http\Requests\Project\AddProjectMemberRequest;
+use App\Http\Requests\Project\StoreProjectRequest;
+use App\Http\Requests\Project\UpdateProjectMemberRequest;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,29 +27,9 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreProjectRequest $request, CreateProjectAction $action): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'], 'prefix' => ['required', 'alpha_num:ascii', 'max:12'],
-            'description' => ['nullable', 'string'], 'color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'workspace_id' => ['required', 'uuid', 'exists:workspaces,id'],
-        ]);
-        abort_unless($request->user()->ownedWorkspaces()->whereKey($validated['workspace_id'])->exists() || $request->user()->hasRole('admin'), 403);
-        $validated['prefix'] = strtoupper($validated['prefix']);
-        $request->validate(['prefix' => [Rule::unique('projects')->where('workspace_id', $validated['workspace_id'])]]);
-
-        $project = DB::transaction(function () use ($validated, $request) {
-            $project = Project::create([...$validated, 'created_by' => $request->user()->id]);
-            $project->members()->attach($request->user(), ['id' => (string) Str::uuid(), 'role_in_project' => 'owner']);
-            foreach ([
-                ['Not Started', '#64748B', true], ['Pending', '#F97316', false],
-                ['Completed', '#22C55E', false], ['Under Review', '#A855F7', false],
-            ] as $order => [$name, $color, $default]) {
-                $project->statuses()->create(['name' => $name, 'color' => $color, 'order' => $order, 'is_default' => $default]);
-            }
-
-            return $project;
-        });
+        $project = $action->handle($request->user(), $request->validated());
 
         return redirect()->route('projects.show', $project)->with('success', 'Project created.');
     }
@@ -102,36 +87,24 @@ class ProjectController extends Controller
         return redirect()->route('projects.index')->with('success', 'Project deleted.');
     }
 
-    public function addMember(Request $request, Project $project): RedirectResponse
+    public function addMember(AddProjectMemberRequest $request, Project $project, AddProjectMemberAction $action): RedirectResponse
     {
-        $this->authorize('update', $project);
-        $validated = $request->validate([
-            'user_id' => ['required', 'integer', 'exists:users,id'],
-            'role_in_project' => ['required', Rule::in(['editor', 'viewer'])],
-        ]);
-        $project->members()->syncWithoutDetaching([
-            $validated['user_id'] => ['id' => (string) Str::uuid(), 'role_in_project' => $validated['role_in_project']],
-        ]);
+        $action->handle($project, $request->validated());
 
         return back()->with('success', 'Project member added.');
     }
 
-    public function updateMember(Request $request, Project $project, User $user): RedirectResponse
+    public function updateMember(UpdateProjectMemberRequest $request, Project $project, User $user, UpdateProjectMemberRoleAction $action): RedirectResponse
     {
-        $this->authorize('update', $project);
-        abort_if($project->created_by === $user->id, 422, 'The project creator must remain an owner.');
-        abort_unless($project->members()->where('users.id', $user->id)->exists(), 404);
-        $validated = $request->validate(['role_in_project' => ['required', Rule::in(['owner', 'editor', 'viewer'])]]);
-        $project->members()->updateExistingPivot($user->id, $validated);
+        $action->handle($project, $user, $request->validated());
 
         return back()->with('success', 'Project role updated.');
     }
 
-    public function removeMember(Project $project, User $user): RedirectResponse
+    public function removeMember(Project $project, User $user, RemoveProjectMemberAction $action): RedirectResponse
     {
         $this->authorize('update', $project);
-        abort_if($project->created_by === $user->id, 422, 'The project creator cannot be removed.');
-        $project->members()->detach($user->id);
+        $action->handle($project, $user);
 
         return back()->with('success', 'Project member removed.');
     }

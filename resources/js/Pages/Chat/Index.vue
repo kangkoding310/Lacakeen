@@ -1,16 +1,22 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import { usePermissions } from '@/composables/usePermissions';
+import type { ConversationSummary } from '@/types/conversation';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { MoreHorizontal, Paperclip, Phone, Search, Send, Video } from 'lucide-vue-next';
 import { nextTick, onMounted, ref } from 'vue';
 
-const props = defineProps({ conversations: Array, activeConversation: Object });
+const props = defineProps<{
+    conversations: ConversationSummary[];
+    activeConversation: ConversationSummary | null;
+}>();
+const { currentUser } = usePermissions();
 const form = useForm({ body: '' });
-const messageList = ref();
+const messageList = ref<HTMLElement | null>(null);
 const send = () =>
-    form.post(route('chat.messages.store', props.activeConversation.id), {
+    form.post(route('chat.messages.store', props.activeConversation!.id), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
@@ -22,7 +28,7 @@ const send = () =>
             );
         },
     });
-const time = (date) =>
+const time = (date: string) =>
     new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(date));
 onMounted(() =>
     nextTick(() => {
@@ -127,9 +133,7 @@ onMounted(() =>
                                 :key="message.id"
                                 class="flex gap-3"
                                 :class="
-                                    message.sender_id === $page.props.auth.user.id
-                                        ? 'flex-row-reverse'
-                                        : ''
+                                    message.sender_id === currentUser.id ? 'flex-row-reverse' : ''
                                 "
                             >
                                 <img
@@ -143,7 +147,7 @@ onMounted(() =>
                                     <div
                                         class="rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm"
                                         :class="
-                                            message.sender_id === $page.props.auth.user.id
+                                            message.sender_id === currentUser.id
                                                 ? 'rounded-tr-md bg-blue-600 text-white'
                                                 : 'rounded-tl-md bg-white text-slate-700'
                                         "
@@ -153,9 +157,7 @@ onMounted(() =>
                                     <p
                                         class="mt-1 text-[10px] text-slate-400"
                                         :class="
-                                            message.sender_id === $page.props.auth.user.id
-                                                ? 'text-right'
-                                                : ''
+                                            message.sender_id === currentUser.id ? 'text-right' : ''
                                         "
                                     >
                                         {{ message.sender.name }} · {{ time(message.created_at) }}

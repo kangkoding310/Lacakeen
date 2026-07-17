@@ -64,6 +64,7 @@ export interface TaskListItem {
     assignees: TaskAssignee[];
     comments_count?: number;
     comments?: TaskComment[];
+    order?: number;
 }
 
 export interface Task extends TaskListItem {

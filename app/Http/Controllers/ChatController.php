@@ -17,7 +17,9 @@ class ChatController extends Controller
             ->with(['participants:id,name,avatar', 'messages' => fn ($query) => $query->with('sender:id,name,avatar')->limit(1)])
             ->withMax('messages', 'created_at')->orderByDesc('messages_max_created_at')->get();
         $active = $conversation ?: $conversations->first();
-        abort_if($active && ! $conversations->contains('id', $active->id), 403);
+        if ($active) {
+            $this->authorize('view', $active);
+        }
 
         return Inertia::render('Chat/Index', [
             'conversations' => $conversations,
@@ -27,7 +29,7 @@ class ChatController extends Controller
 
     public function store(Request $request, Conversation $conversation): RedirectResponse
     {
-        abort_unless($conversation->participants()->where('users.id', $request->user()->id)->exists(), 403);
+        $this->authorize('view', $conversation);
         $validated = $request->validate(['body' => ['required', 'string', 'max:10000']]);
         Message::create([...$validated, 'conversation_id' => $conversation->id, 'sender_id' => $request->user()->id]);
 

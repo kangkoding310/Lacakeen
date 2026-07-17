@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
-import AvatarStack from '@/Components/ui/AvatarStack.vue';
+import type { Analytics, AnalyticsFilters } from '@/types/analytics';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Bar, Doughnut, Line } from 'vue-chartjs';
 import {
@@ -16,7 +16,7 @@ import {
     PointElement,
     Tooltip,
 } from 'chart.js';
-import { Download, Filter, TrendingUp } from 'lucide-vue-next';
+import { Download, Filter } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 ChartJS.register(
@@ -30,7 +30,17 @@ ChartJS.register(
     PointElement,
     Tooltip
 );
-const props = defineProps({ analytics: Object, projects: Array, filters: Object });
+
+interface ReportingProjectOption {
+    id: string;
+    name: string;
+}
+
+const props = defineProps<{
+    analytics: Analytics;
+    projects: ReportingProjectOption[];
+    filters: AnalyticsFilters;
+}>();
 const query = useForm({
     project: props.filters.project || '',
     from: props.filters.from || '',
@@ -73,7 +83,7 @@ const completionData = computed(() => ({
 const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom' } },
+    plugins: { legend: { position: 'bottom' as const } },
 };
 const apply = () => router.get(route('reporting'), query.data(), { preserveState: true });
 </script>

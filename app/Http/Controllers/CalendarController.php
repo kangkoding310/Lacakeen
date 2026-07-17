@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Calendar\CreateCalendarEventAction;
+use App\Http\Requests\Calendar\StoreCalendarEventRequest;
 use App\Models\CalendarEvent;
 use App\Models\Project;
 use App\Models\Task;
@@ -40,17 +42,9 @@ class CalendarController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreCalendarEventRequest $request, CreateCalendarEventAction $action): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'], 'description' => ['nullable', 'string'],
-            'project_id' => ['nullable', 'uuid', 'exists:projects,id'], 'start_at' => ['required', 'date'],
-            'end_at' => ['nullable', 'date', 'after_or_equal:start_at'], 'all_day' => ['boolean'],
-        ]);
-        if ($validated['project_id'] ?? null) {
-            $this->authorize('view', Project::findOrFail($validated['project_id']));
-        }
-        CalendarEvent::create([...$validated, 'user_id' => $request->user()->id]);
+        $action->handle($request->user(), $request->validated());
 
         return back()->with('success', 'Event created.');
     }

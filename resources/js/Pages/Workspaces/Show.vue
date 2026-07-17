@@ -1,8 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import Modal from '@/Components/ui/Modal.vue';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { usePermissions } from '@/composables/usePermissions';
+import { workspaceService } from '@/services/workspaceService';
+import type { WorkspaceDetail, WorkspaceMember, WorkspaceRole } from '@/types/workspace';
+import type { TaskAssignee } from '@/types/task';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     Building2,
@@ -15,22 +19,20 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
-const props = defineProps({ workspace: Object, availableMembers: Array });
-const page = usePage();
+const props = defineProps<{ workspace: WorkspaceDetail; availableMembers: TaskAssignee[] }>();
+const { isAdmin, canManageWorkspace, canDeleteWorkspace } = usePermissions();
 const editOpen = ref(false);
 const addMemberOpen = ref(false);
 const edit = useForm({ name: props.workspace.name });
-const addMember = useForm({ user_id: '', role: 'member' });
+const addMember = useForm({ user_id: '' as number | '', role: 'member' as WorkspaceRole });
 
-const isOwner = computed(() => props.workspace.owner_id === page.props.auth.user.id);
-const myRole = computed(
-    () => props.workspace.members.find((member) => member.id === page.props.auth.user.id)?.pivot?.role
-);
-const isAdmin = computed(() => page.props.auth.user.roles.some((role) => role.name === 'admin'));
-const canManage = computed(() => isAdmin.value || isOwner.value || myRole.value === 'admin');
-const canDelete = computed(() => isAdmin.value || isOwner.value);
+const canManage = computed(() => canManageWorkspace(props.workspace));
+const canDelete = computed(() => canDeleteWorkspace(props.workspace));
 const memberOptions = computed(() =>
-    props.availableMembers.map((member) => ({ value: member.id, label: `${member.name} (${member.email})` }))
+    props.availableMembers.map((member) => ({
+        value: member.id,
+        label: `${member.name} (${member.email})`,
+    }))
 );
 
 const startEdit = () => {
@@ -53,21 +55,24 @@ const submitAddMember = () =>
             addMember.reset();
         },
     });
-const updateRole = (member, role) =>
-    router.patch(
-        route('workspaces.members.update', [props.workspace.id, member.id]),
+const updateRole = (member: WorkspaceMember, role: WorkspaceRole) =>
+    workspaceService.updateMember(
+        props.workspace.id,
+        member.id,
         { role },
         { preserveScroll: true }
     );
-const removeMember = (member) => {
+const removeMember = (member: WorkspaceMember) => {
     if (confirm(`Remove “${member.name}” from this workspace?`))
-        router.delete(route('workspaces.members.destroy', [props.workspace.id, member.id]), {
-            preserveScroll: true,
-        });
+        workspaceService.removeMember(props.workspace.id, member.id, { preserveScroll: true });
 };
 const removeWorkspace = () => {
-    if (confirm(`Permanently delete “${props.workspace.name}” and all its projects? This cannot be undone.`))
-        router.delete(route('workspaces.destroy', props.workspace.id));
+    if (
+        confirm(
+            `Permanently delete “${props.workspace.name}” and all its projects? This cannot be undone.`
+        )
+    )
+        workspaceService.destroy(props.workspace.id);
 };
 </script>
 
@@ -118,7 +123,9 @@ const removeWorkspace = () => {
                             class="h-9 w-9 rounded-lg object-cover"
                         />
                         <div class="min-w-0">
-                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                            <p
+                                class="text-[11px] font-semibold uppercase tracking-wide text-slate-400"
+                            >
                                 Owner
                             </p>
                             <p class="truncate text-sm font-semibold">{{ workspace.owner.name }}</p>
@@ -129,7 +136,9 @@ const removeWorkspace = () => {
                             <FolderKanban class="h-4 w-4 text-slate-500" />
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                            <p
+                                class="text-[11px] font-semibold uppercase tracking-wide text-slate-400"
+                            >
                                 Projects
                             </p>
                             <p class="text-sm font-semibold">{{ workspace.projects_count }}</p>
@@ -158,7 +167,9 @@ const removeWorkspace = () => {
                         />
                         <div class="min-w-0">
                             <p class="truncate text-sm font-semibold">{{ workspace.owner.name }}</p>
-                            <p class="truncate text-xs text-slate-400">{{ workspace.owner.email }}</p>
+                            <p class="truncate text-xs text-slate-400">
+                                {{ workspace.owner.email }}
+                            </p>
                         </div>
                     </div>
                     <span
@@ -189,7 +200,12 @@ const removeWorkspace = () => {
                         <select
                             class="ui-input h-9 w-28 py-0 text-xs"
                             :value="member.pivot.role"
-                            @change="updateRole(member, $event.target.value)"
+                            @change="
+                                updateRole(
+                                    member,
+                                    ($event.target as HTMLSelectElement).value as WorkspaceRole
+                                )
+                            "
                         >
                             <option value="member">Member</option>
                             <option value="admin">Admin</option>
@@ -241,7 +257,11 @@ const removeWorkspace = () => {
             ><form class="space-y-4" @submit.prevent="submitAddMember">
                 <div>
                     <label class="ui-label">Member</label
-                    ><AppSelect v-model="addMember.user_id" :options="memberOptions" placeholder="Select a user" />
+                    ><AppSelect
+                        v-model="addMember.user_id"
+                        :options="memberOptions"
+                        placeholder="Select a user"
+                    />
                 </div>
                 <div>
                     <label class="ui-label">Role</label
@@ -251,7 +271,11 @@ const removeWorkspace = () => {
                     </select>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button type="button" class="ui-button-secondary" @click="addMemberOpen = false">
+                    <button
+                        type="button"
+                        class="ui-button-secondary"
+                        @click="addMemberOpen = false"
+                    >
                         Cancel</button
                     ><button class="ui-button-primary" :disabled="addMember.processing">
                         Add member

@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import InputError from '@/Components/InputError.vue';
 import Modal from '@/Components/ui/Modal.vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-defineProps({ open: Boolean });
-const emit = defineEmits(['close']);
+defineProps<{ open: boolean }>();
+const emit = defineEmits<{ close: [] }>();
 const page = usePage();
 const workspace = computed(() => page.props.projectNavigation?.workspace);
 const form = useForm({ name: '', prefix: '', description: '', color: '#2563EB', workspace_id: '' });

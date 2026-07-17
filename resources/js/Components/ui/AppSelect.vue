@@ -1,14 +1,23 @@
-<script setup>
+<script setup lang="ts">
 import Multiselect from '@vueform/multiselect';
 
 defineOptions({ inheritAttrs: false });
-defineProps({
-    options: { type: Array, default: () => [] },
-    placeholder: { type: String, default: 'Select an option' },
-    mode: { type: String, default: 'single' },
-    searchable: { type: Boolean, default: true },
-    canClear: { type: Boolean, default: true },
-});
+withDefaults(
+    defineProps<{
+        options?: { value: unknown; label: string }[];
+        placeholder?: string;
+        mode?: 'single' | 'multiple' | 'tags';
+        searchable?: boolean;
+        canClear?: boolean;
+    }>(),
+    {
+        options: () => [],
+        placeholder: 'Select an option',
+        mode: 'single',
+        searchable: true,
+        canClear: true,
+    }
+);
 const model = defineModel();
 </script>
 

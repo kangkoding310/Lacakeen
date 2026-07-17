@@ -2,24 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Task\AddTaskAttachmentAction;
+use App\Http\Requests\Task\StoreTaskAttachmentRequest;
 use App\Models\Task;
-use App\Models\TaskActivityLog;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 class TaskAttachmentController extends Controller
 {
-    public function store(Request $request, Task $task): RedirectResponse
+    public function store(StoreTaskAttachmentRequest $request, Task $task, AddTaskAttachmentAction $action): RedirectResponse
     {
-        $this->authorize('update', $task);
-        $request->validate(['attachment' => ['required', 'file', 'max:10240']]);
-        $file = $request->file('attachment');
-        $task->attachments()->create([
-            'file_path' => $file->store('task-attachments', 'public'),
-            'file_name' => $file->getClientOriginalName(),
-            'uploaded_by' => $request->user()->id,
-        ]);
-        TaskActivityLog::create(['task_id' => $task->id, 'user_id' => $request->user()->id, 'action' => 'attachment_added']);
+        $action->handle($task, $request->file('attachment'), $request->user());
 
         return back()->with('success', 'Attachment uploaded.');
     }

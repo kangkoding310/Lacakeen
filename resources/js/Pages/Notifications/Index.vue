@@ -1,14 +1,17 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import type { NotificationItem } from '@/types/notification';
+import type { Paginated } from '@/types/pagination';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Bell, CheckCheck, CircleCheck, Clock3 } from 'lucide-vue-next';
-const props = defineProps({ notifications: Object });
-const read = (notification) =>
+
+defineProps<{ notifications: Paginated<NotificationItem> }>();
+const read = (notification: NotificationItem) =>
     router.patch(route('notifications.read', notification.id), {}, { preserveScroll: true });
-const format = (date) =>
+const format = (date: string) =>
     new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(
-        Math.round((new Date(date) - new Date()) / 86400000),
+        Math.round((new Date(date).getTime() - Date.now()) / 86400000),
         'day'
     );
 </script>

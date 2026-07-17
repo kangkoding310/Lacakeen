@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
@@ -6,8 +6,12 @@ import EmptyState from '@/Components/ui/EmptyState.vue';
 import KanbanBoard from '@/Components/KanbanBoard.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
 import TaskDetailDrawer from '@/Components/TaskDetailDrawer.vue';
+import { usePermissions } from '@/composables/usePermissions';
+import { taskStatusService } from '@/services/taskStatusService';
 import { formatDate } from '@/utils/date';
 import { useDateStore } from '@/stores/date';
+import type { ProjectStatusColumn } from '@/types/project';
+import type { Task, TaskAssignee } from '@/types/task';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     ArrowDownUp,
@@ -16,33 +20,36 @@ import {
     CalendarDays,
     ChartNoAxesColumn,
     CheckCircle2,
-    ChevronsUpDown,
-    CircleUserRound,
     Ellipsis,
     FolderKanban,
     LayoutGrid,
     Plus,
     Search,
-    SlidersHorizontal,
     Sparkles,
     Table2,
     Users,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
-const props = defineProps({
-    stats: Object,
-    projects: Array,
-    selectedProject: Object,
-    statuses: Array,
-    members: Array,
-});
+interface DashboardProject {
+    id: string;
+    name: string;
+}
+
+const props = defineProps<{
+    stats: { activeEmployees: number; activeProjects: number; tasks: number; accomplished: number };
+    projects: DashboardProject[];
+    selectedProject: DashboardProject | null;
+    statuses: ProjectStatusColumn[];
+    members: TaskAssignee[];
+}>();
+const { currentUser } = usePermissions();
 const dateStore = useDateStore();
 const activeView = ref('Kanban');
-const selectedTask = ref(null);
+const selectedTask = ref<Task | null>(null);
 const detailOpen = ref(false);
 const createOpen = ref(false);
-const createDefaults = ref({});
+const createDefaults = ref<{ project_id?: string; status_id?: string }>({});
 const allTasks = computed(() => props.statuses.flatMap((status) => status.tasks || []));
 const projectOptions = computed(() =>
     props.projects.map((project) => ({ value: project.id, label: project.name }))
@@ -79,26 +86,22 @@ const cards = computed(() => [
         href: route('reporting'),
     },
 ]);
-const openTask = (task) => {
+const openTask = (task: Task) => {
     selectedTask.value = task;
     detailOpen.value = true;
 };
-const addTask = (statusId) => {
+const addTask = (statusId?: string) => {
     createDefaults.value = { project_id: props.selectedProject?.id, status_id: statusId };
     createOpen.value = true;
 };
 const addColumn = () => {
     const name = prompt('New column name');
-    if (name?.trim())
-        router.post(
-            route('statuses.store', props.selectedProject.id),
-            { name },
-            { preserveScroll: true }
-        );
+    if (name?.trim() && props.selectedProject)
+        taskStatusService.store(props.selectedProject.id, { name }, { preserveScroll: true });
 };
-const switchProject = (project) =>
+const switchProject = (project: string) =>
     router.get(route('dashboard'), { project }, { preserveState: false, preserveScroll: true });
-const formatTaskDate = (date) =>
+const formatTaskDate = (date: string | null) =>
     formatDate(date, { month: 'short', day: '2-digit', year: '2-digit' });
 </script>
 
@@ -112,7 +115,7 @@ const formatTaskDate = (date) =>
                         {{ dateStore.dayName }} focus
                     </p>
                     <h1 class="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-                        Welcome back, {{ $page.props.auth.user.name.split(' ')[0] }}!
+                        Welcome back, {{ currentUser.name.split(' ')[0] }}!
                     </h1>
                     <p class="mt-2 text-sm text-slate-500">
                         Stay on top of your tasks, monitor progress, and track status.
@@ -230,7 +233,8 @@ const formatTaskDate = (date) =>
                         :statuses="statuses"
                         :project="selectedProject"
                         @open-task="openTask"
-                        @add-task="($event, isColumn) => (isColumn ? addColumn() : addTask($event))"
+                        @add-task="addTask"
+                        @add-column="addColumn"
                         ><template #empty>
                             <EmptyState
                                 title="No board yet"
@@ -307,7 +311,7 @@ const formatTaskDate = (date) =>
                                 <div
                                     class="absolute inset-y-1 flex items-center rounded-md px-3 text-[11px] font-semibold text-white shadow-sm"
                                     :style="{
-                                        left: `${(task.order * 7) % 55}%`,
+                                        left: `${((task.order ?? 0) * 7) % 55}%`,
                                         width: '35%',
                                         backgroundColor: task.project.color,
                                     }"

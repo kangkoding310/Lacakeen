@@ -1,25 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import {
-    Bell,
-    Building2,
-    Check,
-    CreditCard,
-    KeyRound,
-    ShieldCheck,
-    UserRound,
-} from 'lucide-vue-next';
-import { computed } from 'vue';
+import { usePermissions } from '@/composables/usePermissions';
+import type { WorkspaceSummary } from '@/types/models';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Check, CreditCard, KeyRound, ShieldCheck, UserRound } from 'lucide-vue-next';
 
-const props = defineProps({ tab: String, workspace: Object });
-const settingsUser = computed(() => usePage().props.auth.user);
+const props = defineProps<{ tab: string; workspace: WorkspaceSummary | null }>();
+const { currentUser: settingsUser } = usePermissions();
 const tabs = [
     { id: 'profile', label: 'Profile', icon: UserRound },
-    // { id: "workspace", label: "Workspace", icon: Building2 },
-    // { id: "notifications", label: "Notifications", icon: Bell },
-    // { id: "billing", label: "Billing", icon: CreditCard },
     { id: 'security', label: 'Security', icon: ShieldCheck },
 ];
 const profile = useForm({
@@ -28,7 +18,7 @@ const profile = useForm({
     email: settingsUser.value.email,
     job_title: settingsUser.value.job_title || '',
     phone: settingsUser.value.phone || '',
-    avatar: null,
+    avatar: null as File | null,
 });
 const workspaceForm = useForm({ name: props.workspace?.name || '' });
 const preferences = useForm({
@@ -41,6 +31,27 @@ const password = useForm({
     password: '',
     password_confirmation: '',
 });
+const preferenceItems: {
+    key: 'email_task_assigned' | 'email_due_reminder' | 'push_comments';
+    label: string;
+    desc: string;
+}[] = [
+    {
+        key: 'email_task_assigned',
+        label: 'Task assignments',
+        desc: 'Email me when someone assigns a task.',
+    },
+    {
+        key: 'email_due_reminder',
+        label: 'Due date reminders',
+        desc: 'Email me before assigned work is due.',
+    },
+    {
+        key: 'push_comments',
+        label: 'Comments and mentions',
+        desc: 'Show in-app alerts for comments and mentions.',
+    },
+];
 const saveProfile = () =>
     profile.post(route('profile.update'), {
         forceFormData: true,
@@ -103,7 +114,10 @@ const savePassword = () =>
                                     type="file"
                                     accept="image/*"
                                     class="hidden"
-                                    @change="profile.avatar = $event.target.files[0]"
+                                    @change="
+                                        profile.avatar =
+                                            ($event.target as HTMLInputElement).files?.[0] ?? null
+                                    "
                             /></label>
                         </div>
                         <div class="grid gap-4 sm:grid-cols-2">
@@ -164,23 +178,7 @@ const savePassword = () =>
                         <p class="text-sm text-slate-400">Choose which updates should reach you.</p>
                         <div class="mt-6 divide-y divide-slate-100">
                             <label
-                                v-for="item in [
-                                    {
-                                        key: 'email_task_assigned',
-                                        label: 'Task assignments',
-                                        desc: 'Email me when someone assigns a task.',
-                                    },
-                                    {
-                                        key: 'email_due_reminder',
-                                        label: 'Due date reminders',
-                                        desc: 'Email me before assigned work is due.',
-                                    },
-                                    {
-                                        key: 'push_comments',
-                                        label: 'Comments and mentions',
-                                        desc: 'Show in-app alerts for comments and mentions.',
-                                    },
-                                ]"
+                                v-for="item in preferenceItems"
                                 :key="item.key"
                                 class="flex items-center justify-between gap-5 py-4"
                                 ><span

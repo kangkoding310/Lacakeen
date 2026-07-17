@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { X } from 'lucide-vue-next';
 
-defineProps({ open: Boolean, title: String, description: String, wide: Boolean });
-defineEmits(['close']);
+defineProps<{ open: boolean; title?: string; description?: string; wide?: boolean }>();
+defineEmits<{ close: [] }>();
 </script>
 
 <template>

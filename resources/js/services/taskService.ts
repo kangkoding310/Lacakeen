@@ -15,6 +15,10 @@ export const taskService = {
         router.patch(route('tasks.update', taskId), payload, options);
     },
 
+    move(taskId: string, payload: RequestPayload, options?: VisitOptions) {
+        router.patch(route('tasks.move', taskId), payload, options);
+    },
+
     destroy(taskId: string, options?: VisitOptions) {
         router.delete(route('tasks.destroy', taskId), options);
     },

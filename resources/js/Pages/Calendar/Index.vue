@@ -1,8 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import Modal from '@/Components/ui/Modal.vue';
+import { calendarService } from '@/services/calendarService';
+import type { CalendarEventItem, CalendarFilters } from '@/types/calendarEvent';
+import type { TaskProjectRef } from '@/types/task';
 import FullCalendar from '@fullcalendar/vue3';
+import type { CalendarOptions } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -10,9 +14,27 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import { CalendarPlus, Filter, Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
-const props = defineProps({ events: Array, projects: Array, members: Array, filters: Object });
+interface CalendarMember {
+    id: number;
+    name: string;
+    avatar: string | null;
+}
+
+interface FullCalendarEventApi {
+    id: string;
+    title: string;
+    start: Date | null;
+    extendedProps: { type: string; description?: string | null };
+}
+
+const props = defineProps<{
+    events: CalendarEventItem[];
+    projects: TaskProjectRef[];
+    members: CalendarMember[];
+    filters: CalendarFilters;
+}>();
 const createOpen = ref(false);
-const selectedEvent = ref(null);
+const selectedEvent = ref<FullCalendarEventApi | null>(null);
 const query = useForm({
     project: props.filters.project || '',
     assignee: props.filters.assignee || '',
@@ -31,7 +53,7 @@ const projectOptions = computed(() =>
 const memberOptions = computed(() =>
     props.members.map((member) => ({ value: member.id, label: member.name }))
 );
-const options = {
+const options: CalendarOptions = {
     plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
     events: props.events,
@@ -49,8 +71,15 @@ const options = {
         createOpen.value = true;
     },
     eventClick: ({ event }) => {
-        if (event.extendedProps.type === 'task') router.visit(route('tasks.show', event.id));
-        else selectedEvent.value = event;
+        const extendedProps = event.extendedProps as { type: string; description?: string | null };
+        if (extendedProps.type === 'task') router.visit(route('tasks.show', event.id));
+        else
+            selectedEvent.value = {
+                id: event.id,
+                title: event.title,
+                start: event.start,
+                extendedProps,
+            };
     },
 };
 const submit = () =>
@@ -61,7 +90,7 @@ const submit = () =>
             createOpen.value = false;
         },
     });
-const applyFilters = () => router.get(route('calendar'), query.data(), { preserveState: true });
+const applyFilters = () => calendarService.list(query.data(), { preserveState: true });
 </script>
 
 <template>

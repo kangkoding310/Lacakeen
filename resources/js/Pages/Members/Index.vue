@@ -1,24 +1,24 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Modal from '@/Components/ui/Modal.vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import {
-    Activity,
-    BriefcaseBusiness,
-    CheckCircle2,
-    Mail,
-    MoreHorizontal,
-    Plus,
-    Search,
-    UserRoundCheck,
-} from 'lucide-vue-next';
+import { usePermissions } from '@/composables/usePermissions';
+import { memberService } from '@/services/memberService';
+import type { Member, MemberFilters } from '@/types/member';
+import type { Paginated } from '@/types/pagination';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Activity, BriefcaseBusiness, Mail, MoreHorizontal, Plus, Search } from 'lucide-vue-next';
 import { ref } from 'vue';
 
-const props = defineProps({ members: Object, roles: Array, filters: Object });
+const props = defineProps<{
+    members: Paginated<Member>;
+    roles: string[];
+    filters: MemberFilters;
+}>();
+const { isAdmin } = usePermissions();
 const inviteOpen = ref(false);
-const selected = ref(null);
+const selected = ref<Member | null>(null);
 const query = useForm({
     search: props.filters.search || '',
     role: props.filters.role || '',
@@ -30,8 +30,7 @@ const statusOptions = [
     { value: 'active', label: 'Active' },
     { value: 'inactive', label: 'Inactive' },
 ];
-const apply = () =>
-    router.get(route('members'), query.data(), { preserveState: true, replace: true });
+const apply = () => memberService.list(query.data());
 const submitInvite = () =>
     invite.post(route('members.invite'), {
         preserveScroll: true,
@@ -40,9 +39,9 @@ const submitInvite = () =>
             invite.reset();
         },
     });
-const update = (member, data) =>
-    router.patch(route('members.update', member.id), data, { preserveScroll: true });
-const completion = (member) => {
+const update = (member: Member, data: Record<string, string>) =>
+    memberService.update(member.id, data, { preserveScroll: true });
+const completion = (member: Member) => {
     const total = member.active_tasks_count + member.completed_tasks_count;
     return total ? Math.round((member.completed_tasks_count / total) * 100) : 0;
 };
@@ -59,11 +58,7 @@ const completion = (member) => {
                         Manage access, roles, and workload across your workspace.
                     </p>
                 </div>
-                <button
-                    v-if="$page.props.auth.user.roles.some((role) => role.name === 'admin')"
-                    class="ui-button-primary"
-                    @click="inviteOpen = true"
-                >
+                <button v-if="isAdmin" class="ui-button-primary" @click="inviteOpen = true">
                     <Plus class="h-4 w-4" />Invite member
                 </button>
             </div>
@@ -255,10 +250,7 @@ const completion = (member) => {
                             <p class="text-[10px] text-emerald-600">completed</p>
                         </div>
                     </div>
-                    <div
-                        v-if="$page.props.auth.user.roles.some((role) => role.name === 'admin')"
-                        class="mt-5 space-y-2"
-                    >
+                    <div v-if="isAdmin" class="mt-5 space-y-2">
                         <AppSelect
                             :model-value="selected.roles[0]?.name"
                             :options="roleOptions"

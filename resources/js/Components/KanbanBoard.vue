@@ -1,23 +1,39 @@
-<script setup>
+<script setup lang="ts">
 import TaskCard from '@/Components/TaskCard.vue';
 import draggable from 'vuedraggable';
 import { router } from '@inertiajs/vue3';
+import { taskService } from '@/services/taskService';
+import { taskStatusService } from '@/services/taskStatusService';
+import type { ProjectStatusColumn } from '@/types/project';
+import type { Task } from '@/types/task';
 import { Check, MoreVertical, Plus, X } from 'lucide-vue-next';
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-const props = defineProps({
-    statuses: { type: Array, default: () => [] },
-    project: Object,
-    contained: Boolean,
-});
-const emit = defineEmits(['open-task', 'add-task', 'add-column']);
-const columns = ref([]);
-const board = ref(null);
-const editingId = ref(null);
+interface DragChangeEvent {
+    added?: { element: Task; newIndex: number };
+    moved?: { element: Task; newIndex: number };
+}
+
+const props = withDefaults(
+    defineProps<{
+        statuses?: ProjectStatusColumn[];
+        project?: unknown;
+        contained?: boolean;
+    }>(),
+    { statuses: () => [] }
+);
+const emit = defineEmits<{
+    'open-task': [task: Task];
+    'add-task': [statusId: string];
+    'add-column': [];
+}>();
+const columns = ref<ProjectStatusColumn[]>([]);
+const board = ref<HTMLElement | null>(null);
+const editingId = ref<string | null>(null);
 const editingName = ref('');
-const editInput = ref(null);
-const setEditInput = (element) => {
-    editInput.value = element;
+const editInput = ref<HTMLInputElement | null>(null);
+const setEditInput = (element: unknown) => {
+    editInput.value = element as HTMLInputElement | null;
 };
 watch(
     () => props.statuses,
@@ -27,13 +43,13 @@ watch(
     { immediate: true, deep: true }
 );
 
-const changed = (event, column) => {
+const changed = (event: DragChangeEvent, column: ProjectStatusColumn) => {
     const task = event.added?.element || event.moved?.element;
     if (!task) return;
     const oldStatus = task.status_id;
     task.status_id = column.id;
-    router.patch(
-        route('tasks.move', task.id),
+    taskService.move(
+        task.id,
         {
             status_id: column.id,
             order: event.added?.newIndex ?? event.moved?.newIndex ?? 0,
@@ -50,14 +66,18 @@ const changed = (event, column) => {
         }
     );
 };
-const closeMenus = (event) => {
-    if (event?.type === 'keydown' && event.key !== 'Escape') return;
+const closeMenus = (event?: Event) => {
+    if (event?.type === 'keydown' && (event as KeyboardEvent).key !== 'Escape') return;
     board.value?.querySelectorAll('details[open]').forEach((menu) => {
-        if (!event || event.key === 'Escape' || !menu.contains(event.target))
+        if (
+            !event ||
+            (event as KeyboardEvent).key === 'Escape' ||
+            !menu.contains(event.target as Node)
+        )
             menu.removeAttribute('open');
     });
 };
-const startRename = (column) => {
+const startRename = (column: ProjectStatusColumn) => {
     editingId.value = column.id;
     editingName.value = column.name;
     nextTick(() => editInput.value?.focus());
@@ -66,14 +86,14 @@ const cancelRename = () => {
     editingId.value = null;
     editingName.value = '';
 };
-const saveRename = (column) => {
+const saveRename = (column: ProjectStatusColumn) => {
     const name = editingName.value.trim();
     if (!name) return;
     const previous = column.name;
     column.name = name;
     cancelRename();
-    router.patch(
-        route('statuses.update', column.id),
+    taskStatusService.update(
+        column.id,
         { name },
         {
             preserveScroll: true,
@@ -83,10 +103,10 @@ const saveRename = (column) => {
         }
     );
 };
-const remove = (column) => {
+const remove = (column: ProjectStatusColumn) => {
     closeMenus();
     if (confirm(`Delete “${column.name}”?`))
-        router.delete(route('statuses.destroy', column.id), { preserveScroll: true });
+        taskStatusService.destroy(column.id, { preserveScroll: true });
 };
 onMounted(() => {
     document.addEventListener('pointerdown', closeMenus);
@@ -184,7 +204,7 @@ onBeforeUnmount(() => {
                 :animation="180"
                 @change="changed($event, column)"
                 ><template #item="{ element }">
-                    <TaskCard :task="element" @open="$emit('open-task', $event)" />
+                    <TaskCard :task="element" @open="emit('open-task', $event as Task)" />
                 </template>
             </draggable>
             <button

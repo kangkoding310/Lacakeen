@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
@@ -7,12 +7,22 @@ import KanbanBoard from '@/Components/KanbanBoard.vue';
 import Modal from '@/Components/ui/Modal.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
 import TaskDetailDrawer from '@/Components/TaskDetailDrawer.vue';
+import { usePermissions } from '@/composables/usePermissions';
+import { projectService } from '@/services/projectService';
 import { formatDate } from '@/utils/date';
+import type {
+    ProjectDetail,
+    ProjectEvent,
+    ProjectMember,
+    ProjectRole,
+    ProjectStatusColumn,
+} from '@/types/project';
+import type { Task, TaskAssignee } from '@/types/task';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import {
     Archive,
     CalendarDays,
@@ -23,22 +33,20 @@ import {
     MoreHorizontal,
     Pencil,
     Plus,
-    Search,
     Trash2,
     UserMinus,
-    Users,
 } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-const props = defineProps({
-    project: Object,
-    statuses: Array,
-    tasks: Array,
-    events: Array,
-    availableMembers: Array,
-    tab: String,
-});
-const page = usePage();
+const props = defineProps<{
+    project: ProjectDetail;
+    statuses: ProjectStatusColumn[];
+    tasks: Task[];
+    events: ProjectEvent[];
+    availableMembers: TaskAssignee[];
+    tab: string;
+}>();
+const { canManageProject, canDeleteProject } = usePermissions();
 const activeTab = ref(
     ['summary', 'kanban', 'list', 'calendar', 'timeline'].includes(props.tab)
         ? props.tab
@@ -47,12 +55,17 @@ const activeTab = ref(
 const search = ref('');
 const createOpen = ref(false);
 const statusOpen = ref(false);
-const createDefaults = ref({ project_id: props.project.id });
-const selectedTask = ref(null);
+const createDefaults = ref<{ project_id: string; status_id?: string }>({
+    project_id: props.project.id,
+});
+const selectedTask = ref<Task | null>(null);
 const editOpen = ref(false);
 const menuOpen = ref(false);
-const menuElement = ref(null);
-const member = useForm({ user_id: null, role_in_project: 'editor' });
+const menuElement = ref<HTMLElement | null>(null);
+const member = useForm({
+    user_id: null as number | null,
+    role_in_project: 'editor' as ProjectRole,
+});
 const edit = useForm({
     name: props.project.name,
     prefix: props.project.prefix,
@@ -70,23 +83,13 @@ const tabs = [
 const memberOptions = computed(() =>
     props.availableMembers.map((user) => ({ value: user.id, label: `${user.name} ${user.email}` }))
 );
-const roleOptions = [
+const roleOptions: { value: ProjectRole; label: string }[] = [
     { value: 'owner', label: 'Owner' },
     { value: 'editor', label: 'Editor' },
     { value: 'viewer', label: 'Viewer' },
 ];
-const currentMembership = computed(() =>
-    props.project.members.find((user) => user.id === page.props.auth.user.id)
-);
-const isAdmin = computed(() => page.props.auth.user.roles.some((role) => role.name === 'admin'));
-const canManage = computed(
-    () =>
-        isAdmin.value ||
-        ['owner', 'editor'].includes(currentMembership.value?.pivot?.role_in_project)
-);
-const canDelete = computed(
-    () => isAdmin.value || currentMembership.value?.pivot?.role_in_project === 'owner'
-);
+const canManage = computed(() => canManageProject(props.project.members));
+const canDelete = computed(() => canDeleteProject(props.project.members));
 const filteredTasks = computed(() =>
     props.tasks.filter((task) =>
         `${task.code} ${task.title}`.toLowerCase().includes(search.value.toLowerCase())
@@ -118,21 +121,21 @@ const overdue = computed(
 const timelineStart = computed(() => {
     const dates = props.tasks
         .flatMap((task) => [task.start_date, task.due_date])
-        .filter(Boolean)
+        .filter((date): date is string => Boolean(date))
         .map(Date.parse);
     return dates.length ? Math.min(...dates) : Date.now();
 });
 const timelineEnd = computed(() => {
     const dates = props.tasks
         .flatMap((task) => [task.start_date, task.due_date])
-        .filter(Boolean)
+        .filter((date): date is string => Boolean(date))
         .map(Date.parse);
     return dates.length ? Math.max(...dates) : Date.now() + 86400000;
 });
-const timelineStyle = (task) => {
+const timelineStyle = (task: Task) => {
     const total = Math.max(timelineEnd.value - timelineStart.value, 86400000);
-    const start = Date.parse(task.start_date || task.due_date) || timelineStart.value;
-    const end = Date.parse(task.due_date || task.start_date) || start + 86400000;
+    const start = Date.parse((task.start_date || task.due_date) as string) || timelineStart.value;
+    const end = Date.parse((task.due_date || task.start_date) as string) || start + 86400000;
     return {
         left: `${Math.max(0, ((start - timelineStart.value) / total) * 100)}%`,
         width: `${Math.max(3, ((end - start) / total) * 100)}%`,
@@ -146,11 +149,11 @@ const calendarOptions = computed(() => ({
     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
     height: 'auto',
     dayMaxEvents: 3,
-    eventClick: ({ event }) => {
-        selectedTask.value = props.tasks.find((task) => task.id === event.id);
+    eventClick: ({ event }: { event: { id: string } }) => {
+        selectedTask.value = props.tasks.find((task) => task.id === event.id) || null;
     },
 }));
-const selectTab = (id) => {
+const selectTab = (id: string) => {
     activeTab.value = id;
     window.history.replaceState(
         {},
@@ -175,17 +178,16 @@ const addMember = () =>
         preserveScroll: true,
         onSuccess: () => member.reset(),
     });
-const updateRole = (user, role) =>
-    router.patch(
-        route('projects.members.update', [props.project.id, user.id]),
+const updateRole = (user: ProjectMember, role: ProjectRole) =>
+    projectService.updateMember(
+        props.project.id,
+        user.id,
         { role_in_project: role },
         { preserveScroll: true }
     );
-const removeMember = (user) => {
+const removeMember = (user: ProjectMember) => {
     if (confirm(`Remove ${user.name} from this project?`))
-        router.delete(route('projects.members.destroy', [props.project.id, user.id]), {
-            preserveScroll: true,
-        });
+        projectService.removeMember(props.project.id, user.id, { preserveScroll: true });
 };
 const saveProject = () =>
     edit.patch(route('projects.update', props.project.id), {
@@ -195,27 +197,27 @@ const saveProject = () =>
         },
     });
 const toggleArchive = () =>
-    router.patch(route('projects.update', props.project.id), {
+    projectService.update(props.project.id, {
         status: props.project.status === 'active' ? 'archived' : 'active',
     });
 const deleteProject = () => {
     if (confirm(`Permanently delete “${props.project.name}” and all its tasks?`))
-        router.delete(route('projects.destroy', props.project.id));
+        projectService.destroy(props.project.id);
 };
-const prettyDate = (date) =>
+const prettyDate = (date: string | null) =>
     formatDate(date, { month: 'short', day: '2-digit', year: '2-digit' }, 'No date');
 watch(
     () => props.tasks,
     (tasks) => {
         if (selectedTask.value)
             selectedTask.value =
-                tasks.find((task) => task.id === selectedTask.value.id) || selectedTask.value;
+                tasks.find((task) => task.id === selectedTask.value!.id) || selectedTask.value;
     }
 );
-const closeMenu = (event) => {
+const closeMenu = (event: KeyboardEvent | PointerEvent) => {
     if (
-        event.key === 'Escape' ||
-        (event.type === 'pointerdown' && !menuElement.value?.contains(event.target))
+        (event instanceof KeyboardEvent && event.key === 'Escape') ||
+        (event.type === 'pointerdown' && !menuElement.value?.contains(event.target as Node))
     )
         menuOpen.value = false;
 };
@@ -535,9 +537,9 @@ onBeforeUnmount(() => {
                         >
                             <div class="p-4">Task</div>
                             <div class="flex justify-between border-l border-slate-200 p-4">
-                                <span>{{ prettyDate(timelineStart) }}</span
+                                <span>{{ prettyDate(String(timelineStart)) }}</span
                                 ><span>Project schedule</span
-                                ><span>{{ prettyDate(timelineEnd) }}</span>
+                                ><span>{{ prettyDate(String(timelineEnd)) }}</span>
                             </div>
                         </div>
                         <div

@@ -1,9 +1,18 @@
-<script setup>
-defineProps({
-    users: { type: Array, default: () => [] },
-    max: { type: Number, default: 3 },
-    size: { type: String, default: 'sm' },
-});
+<script setup lang="ts">
+interface AvatarUser {
+    id: string | number;
+    name: string;
+    avatar?: string | null;
+}
+
+withDefaults(
+    defineProps<{
+        users?: AvatarUser[];
+        max?: number;
+        size?: 'sm' | 'md';
+    }>(),
+    { users: () => [], max: 3, size: 'sm' }
+);
 const initials = (name = '') =>
     name
         .split(' ')

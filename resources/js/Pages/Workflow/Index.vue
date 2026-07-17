@@ -1,13 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Modal from '@/Components/ui/Modal.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { ArrowRight, Bell, CheckCircle2, GitBranch, Plus, Sparkles, Zap } from 'lucide-vue-next';
+import { workflowService } from '@/services/workflowService';
+import type { WorkflowItem } from '@/types/workflow';
+import { Head, useForm } from '@inertiajs/vue3';
+import { ArrowRight, CheckCircle2, GitBranch, Plus, Sparkles, Zap } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
-const props = defineProps({ workflows: Array, projects: Array });
+interface WorkflowProjectOption {
+    id: string;
+    name: string;
+}
+
+const props = defineProps<{ workflows: WorkflowItem[]; projects: WorkflowProjectOption[] }>();
 const open = ref(false);
 const form = useForm({
     project_id: '',
@@ -40,13 +47,9 @@ const submit = () =>
             form.reset();
         },
     });
-const toggle = (workflow) =>
-    router.patch(
-        route('workflow.update', workflow.id),
-        { is_active: !workflow.is_active },
-        { preserveScroll: true }
-    );
-const label = (value) =>
+const toggle = (workflow: WorkflowItem) =>
+    workflowService.toggle(workflow.id, !workflow.is_active, { preserveScroll: true });
+const label = (value?: string | null) =>
     value?.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 </script>
 <template>
