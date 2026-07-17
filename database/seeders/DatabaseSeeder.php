@@ -31,45 +31,45 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $workspace = Workspace::create(['name' => 'Product and Solutions', 'owner_id' => 2]);
-        // $permissions = collect([
-        //     'manage users', 'manage projects', 'manage tasks', 'view reports', 'manage workflows',
-        // ])->mapWithKeys(fn ($name) => [$name => Permission::firstOrCreate(['name' => $name])]);
+        $permissions = collect([
+            'manage users', 'manage projects', 'manage tasks', 'view reports', 'manage workflows',
+        ])->mapWithKeys(fn ($name) => [$name => Permission::firstOrCreate(['name' => $name])]);
 
-        // $adminRole = Role::firstOrCreate(['name' => 'admin']);
-        // $managerRole = Role::firstOrCreate(['name' => 'project_manager']);
-        // $memberRole = Role::firstOrCreate(['name' => 'member']);
-        // Role::firstOrCreate(['name' => 'viewer']);
-        // $adminRole->syncPermissions($permissions);
-        // $managerRole->syncPermissions($permissions->except('manage users'));
-        // $memberRole->syncPermissions(['manage tasks']);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $managerRole = Role::firstOrCreate(['name' => 'project_manager']);
+        $memberRole = Role::firstOrCreate(['name' => 'member']);
+        Role::firstOrCreate(['name' => 'viewer']);
+        $adminRole->syncPermissions($permissions);
+        $managerRole->syncPermissions($permissions->except('manage users'));
+        $memberRole->syncPermissions(['manage tasks']);
 
-        // $admin = User::factory()->create([
-        //     'name' => 'Admin',
-        //     'email' => 'admin@lacakeen.test',
-        //     'job_title' => 'Super Admin',
-        //     'avatar' => null,
-        //     'password' => Hash::make('password'),
-        // ]);
-        // $admin->assignRole($adminRole);
+        $admin = User::factory()->create([
+            'name' => 'Admin',
+            'email' => 'admin@lacakeen.test',
+            'job_title' => 'Admin',
+            'avatar' => null,
+            'password' => Hash::make('password'),
+        ]);
+        $admin->assignRole($adminRole);
 
         // $members = User::factory(7)->create()->each(fn (User $user) => $user->assignRole(
         //     fake()->randomElement([$managerRole, $memberRole, $memberRole])
         // ));
         // $users = collect([$admin])->merge($members);
 
-        // $workspace = Workspace::create(['name' => 'Lacakeen Studio', 'owner_id' => $david->id]);
+        $workspace = Workspace::create(['name' => 'Product and Solutions', 'owner_id' => $admin->id]);
+
         // $projectData = [
         //     ['name' => 'Website Redesign', 'prefix' => 'WEB', 'color' => '#2563EB', 'description' => 'New marketing website and design system.'],
         //     ['name' => 'Mobile Application', 'prefix' => 'APP', 'color' => '#7C3AED', 'description' => 'Customer mobile experience.'],
         //     ['name' => 'Growth Campaign', 'prefix' => 'MKT', 'color' => '#EA580C', 'description' => 'Quarterly growth initiatives.'],
         // ];
-        // $statusTemplates = [
-        //     ['name' => 'Not Started', 'color' => '#64748B', 'order' => 0, 'is_default' => true],
-        //     ['name' => 'Pending', 'color' => '#F97316', 'order' => 1],
-        //     ['name' => 'Completed', 'color' => '#22C55E', 'order' => 2],
-        //     ['name' => 'Under Review', 'color' => '#A855F7', 'order' => 3],
-        // ];
+        $statusTemplates = [
+            ['name' => 'Not Started', 'color' => '#64748B', 'order' => 0, 'is_default' => true],
+            ['name' => 'Pending', 'color' => '#F97316', 'order' => 1],
+            ['name' => 'Completed', 'color' => '#22C55E', 'order' => 2],
+            ['name' => 'Under Review', 'color' => '#A855F7', 'order' => 3],
+        ];
         // $titles = [
         //     'Partone Consultancy Website', 'Design wireframes – Homepage', 'Modify content for homepage',
         //     'MTC Design Approval', 'Nexa component revision', 'V0.1 Design System introduction',
