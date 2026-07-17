@@ -1,18 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
-import { formatDate } from '@/utils/date';
+import { formatShortDate } from '@/utils/date';
+import { TASK_PRIORITY_BADGE_CLASS } from '@/constants/taskPriority';
+import type { TaskListItem } from '@/types/task';
 import { CalendarDays, MessageCircle, UserRound } from 'lucide-vue-next';
 
-defineProps({ task: Object });
-defineEmits(['open']);
-const priorityClass = {
-    urgent: 'bg-red-50 text-red-600',
-    high: 'bg-orange-50 text-orange-600',
-    medium: 'bg-violet-50 text-violet-600',
-    low: 'bg-emerald-50 text-emerald-600',
-};
-const formatTaskDate = (date) =>
-    formatDate(date, { month: 'short', day: '2-digit', year: '2-digit' }, 'No date');
+defineProps<{ task: TaskListItem }>();
+defineEmits<{ open: [task: TaskListItem] }>();
+const formatTaskDate = (date: string | null) => formatShortDate(date, 'No date');
 </script>
 
 <template>
@@ -26,7 +21,7 @@ const formatTaskDate = (date) =>
             </div>
             <span
                 class="rounded-lg px-2 py-1 text-[10px] font-bold capitalize"
-                :class="priorityClass[task.priority]"
+                :class="TASK_PRIORITY_BADGE_CLASS[task.priority]"
                 >{{ task.priority }}</span
             >
         </div>

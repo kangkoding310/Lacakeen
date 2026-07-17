@@ -1,11 +1,16 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
-import { formatDate } from '@/utils/date';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { formatShortDate } from '@/utils/date';
+import { taskService } from '@/services/taskService';
+import { TASK_PRIORITY_BADGE_CLASS, TASK_PRIORITY_OPTIONS } from '@/constants/taskPriority';
+import type { ProjectSummary, ProjectMember } from '@/types/models';
+import type { Paginated } from '@/types/pagination';
+import type { TaskFilters, TaskListItem } from '@/types/task';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     CheckSquare,
     Filter,
@@ -17,9 +22,14 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
-const props = defineProps({ tasks: Object, projects: Array, members: Array, filters: Object });
+const props = defineProps<{
+    tasks: Paginated<TaskListItem>;
+    projects: ProjectSummary[];
+    members: ProjectMember[];
+    filters: TaskFilters;
+}>();
 const createOpen = ref(false);
-const selected = ref([]);
+const selected = ref<string[]>([]);
 const query = useForm({
     search: props.filters.search || '',
     project: props.filters.project || '',
@@ -27,7 +37,12 @@ const query = useForm({
     priority: props.filters.priority || '',
     assignee: props.filters.assignee || '',
 });
-const bulk = useForm({ task_ids: [], action: 'assign', status_id: '', assignee_id: '' });
+const bulk = useForm({
+    task_ids: [] as string[],
+    action: 'assign',
+    status_id: '',
+    assignee_id: '',
+});
 const statuses = computed(
     () =>
         props.projects.find((project) => project.id === query.project)?.statuses ||
@@ -43,21 +58,11 @@ const statusOptions = computed(() =>
 const memberOptions = computed(() =>
     props.members.map((member) => ({ value: member.id, label: member.name }))
 );
-const priorityOptions = ['urgent', 'high', 'medium', 'low'].map((priority) => ({
-    value: priority,
-    label: priority[0].toUpperCase() + priority.slice(1),
-}));
+const priorityOptions = TASK_PRIORITY_OPTIONS;
 const allSelected = computed(
-    () => props.tasks.data.length && selected.value.length === props.tasks.data.length
+    () => props.tasks.data.length > 0 && selected.value.length === props.tasks.data.length
 );
-const priorityClass = {
-    urgent: 'bg-red-50 text-red-600',
-    high: 'bg-orange-50 text-orange-600',
-    medium: 'bg-violet-50 text-violet-600',
-    low: 'bg-emerald-50 text-emerald-600',
-};
-const applyFilters = () =>
-    router.get(route('tasks.index'), query.data(), { preserveState: true, replace: true });
+const applyFilters = () => taskService.list(query.data());
 const toggleAll = () => {
     selected.value = allSelected.value ? [] : props.tasks.data.map((task) => task.id);
 };
@@ -75,8 +80,7 @@ const bulkDelete = () => {
     bulk.action = 'delete';
     applyBulk();
 };
-const formatTaskDate = (date) =>
-    formatDate(date, { month: 'short', day: '2-digit', year: '2-digit' }, 'No due date');
+const formatTaskDate = (date: string | null) => formatShortDate(date, 'No due date');
 </script>
 
 <template>
@@ -246,7 +250,7 @@ const formatTaskDate = (date) =>
                             <td class="px-3 py-4">
                                 <span
                                     class="rounded-lg px-2.5 py-1 text-xs font-bold capitalize"
-                                    :class="priorityClass[task.priority]"
+                                    :class="TASK_PRIORITY_BADGE_CLASS[task.priority]"
                                     >{{ task.priority }}</span
                                 >
                             </td>

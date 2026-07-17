@@ -1,39 +1,39 @@
-<script setup>
+<script setup lang="ts">
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import SubtaskList from '@/Components/SubtaskList.vue';
-import { formatDate } from '@/utils/date';
-import { Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { CalendarDays, Download, Paperclip, Send, Trash2, X } from 'lucide-vue-next';
+import { formatMediumDate } from '@/utils/date';
+import { useTaskComposer } from '@/composables/useTaskComposer';
+import { taskService } from '@/services/taskService';
+import { TASK_PRIORITY_OPTIONS } from '@/constants/taskPriority';
+import type { Task, TaskStatusRef } from '@/types/task';
+import { Link, useForm } from '@inertiajs/vue3';
+import { Download, Paperclip, Send, Trash2, X } from 'lucide-vue-next';
 import { computed, watch } from 'vue';
 
-const props = defineProps({
-    task: Object,
-    open: Boolean,
-    statuses: { type: Array, default: () => [] },
-});
-defineEmits(['close']);
+const props = defineProps<{
+    task: Task | null;
+    open: boolean;
+    statuses?: TaskStatusRef[];
+}>();
+defineEmits<{ close: [] }>();
 const edit = useForm({
     title: '',
     description: '',
     status_id: '',
     priority: '',
     due_date: '',
-    assignee_ids: [],
-    label_ids: [],
+    assignee_ids: [] as number[],
+    label_ids: [] as string[],
 });
 const comment = useForm({ comment: '' });
-const attachment = useForm({ attachment: null });
-const projectData = computed(() =>
-    usePage().props.taskComposer?.projects?.find((project) => project.id === props.task?.project_id)
-);
+const attachment = useForm<{ attachment: File | null }>({ attachment: null });
+const { findProject } = useTaskComposer();
+const projectData = computed(() => findProject(props.task?.project_id));
 const statusOptions = computed(() =>
-    props.statuses.map((status) => ({ value: status.id, label: status.name }))
+    (props.statuses ?? []).map((status) => ({ value: status.id, label: status.name }))
 );
-const priorityOptions = ['urgent', 'high', 'medium', 'low'].map((priority) => ({
-    value: priority,
-    label: priority[0].toUpperCase() + priority.slice(1),
-}));
+const priorityOptions = TASK_PRIORITY_OPTIONS;
 watch(
     () => props.task,
     (task) => {
@@ -50,24 +50,33 @@ watch(
     },
     { immediate: true }
 );
-const activity = computed(() => props.task?.activity_logs || []);
-const save = () => edit.patch(route('tasks.update', props.task.id), { preserveScroll: true });
-const addComment = () =>
+const activity = computed(() => props.task?.activityLogs || []);
+const save = () => {
+    if (props.task) edit.patch(route('tasks.update', props.task.id), { preserveScroll: true });
+};
+const addComment = () => {
+    if (!props.task) return;
     comment.post(route('tasks.comments.store', props.task.id), {
         preserveScroll: true,
         onSuccess: () => comment.reset(),
     });
-const upload = () =>
+};
+const upload = () => {
+    if (!props.task) return;
     attachment.post(route('tasks.attachments.store', props.task.id), {
         forceFormData: true,
         preserveScroll: true,
         onSuccess: () => attachment.reset(),
     });
-const remove = () => {
-    if (confirm(`Delete ${props.task.code}?`)) router.delete(route('tasks.destroy', props.task.id));
 };
-const formatTaskDate = (date) =>
-    formatDate(date, { month: 'short', day: 'numeric', year: 'numeric' });
+const onAttachmentSelected = (event: Event) => {
+    attachment.attachment = (event.target as HTMLInputElement).files?.[0] ?? null;
+    upload();
+};
+const remove = () => {
+    if (props.task && confirm(`Delete ${props.task.code}?`)) taskService.destroy(props.task.id);
+};
+const formatTaskDate = (date: string | null) => formatMediumDate(date);
 </script>
 
 <template>
@@ -211,10 +220,7 @@ const formatTaskDate = (date) =>
                                 <Paperclip class="h-4 w-4" />Upload<input
                                     type="file"
                                     class="hidden"
-                                    @change="
-                                        attachment.attachment = $event.target.files[0];
-                                        upload();
-                                    "
+                                    @change="onAttachmentSelected"
                                 />
                             </label>
                         </div>

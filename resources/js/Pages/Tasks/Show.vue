@@ -1,20 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import SubtaskList from '@/Components/SubtaskList.vue';
-import { formatDate } from '@/utils/date';
+import { formatLongDate } from '@/utils/date';
+import type { Task } from '@/types/task';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Download, Paperclip, Send } from 'lucide-vue-next';
 
-const props = defineProps({ task: Object });
+const props = defineProps<{ task: Task }>();
 const comment = useForm({ comment: '' });
 const addComment = () =>
     comment.post(route('tasks.comments.store', props.task.id), {
         preserveScroll: true,
         onSuccess: () => comment.reset(),
     });
-const formatTaskDate = (date) =>
-    formatDate(date, { month: 'long', day: 'numeric', year: 'numeric' }, 'Not set');
+const formatTaskDate = (date: string | null) => formatLongDate(date, 'Not set');
 </script>
 
 <template>
@@ -66,7 +66,7 @@ const formatTaskDate = (date) =>
                                 <img
                                     :src="
                                         item.user.avatar ||
-                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name)}`
+                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(item.user.name)}`
                                     "
                                     class="h-9 w-9 rounded-full object-cover"
                                 />

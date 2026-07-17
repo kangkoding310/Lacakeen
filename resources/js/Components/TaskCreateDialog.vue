@@ -1,13 +1,25 @@
-<script setup>
+<script setup lang="ts">
 import Modal from '@/Components/ui/Modal.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import InputError from '@/Components/InputError.vue';
-import { useForm, usePage } from '@inertiajs/vue3';
+import { useTaskComposer } from '@/composables/useTaskComposer';
+import { TASK_PRIORITY_OPTIONS } from '@/constants/taskPriority';
+import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 
-const props = defineProps({ open: Boolean, defaults: { type: Object, default: () => ({}) } });
-const emit = defineEmits(['close']);
-const projects = computed(() => usePage().props.taskComposer?.projects ?? []);
+interface TaskCreateDefaults {
+    project_id?: string;
+    status_id?: string;
+    parent_task_id?: string;
+    due_date?: string;
+}
+
+const props = defineProps<{
+    open: boolean;
+    defaults?: TaskCreateDefaults;
+}>();
+const emit = defineEmits<{ close: [] }>();
+const { projects } = useTaskComposer();
 const form = useForm({
     project_id: '',
     status_id: '',
@@ -17,8 +29,8 @@ const form = useForm({
     priority: 'medium',
     start_date: '',
     due_date: '',
-    assignee_ids: [],
-    label_ids: [],
+    assignee_ids: [] as number[],
+    label_ids: [] as string[],
 });
 const selectedProject = computed(() =>
     projects.value.find((project) => project.id === form.project_id)
@@ -32,19 +44,17 @@ const statusOptions = computed(() =>
         label: status.name,
     }))
 );
-const priorityOptions = ['urgent', 'high', 'medium', 'low'].map((priority) => ({
-    value: priority,
-    label: priority[0].toUpperCase() + priority.slice(1),
-}));
+const priorityOptions = TASK_PRIORITY_OPTIONS;
 
 watch(
     () => props.open,
     (open) => {
         if (!open) return;
-        form.project_id = props.defaults.project_id || projects.value[0]?.id || '';
-        form.status_id = props.defaults.status_id || selectedProject.value?.statuses?.[0]?.id || '';
-        form.parent_task_id = props.defaults.parent_task_id || '';
-        form.due_date = props.defaults.due_date || '';
+        form.project_id = props.defaults?.project_id || projects.value[0]?.id || '';
+        form.status_id =
+            props.defaults?.status_id || selectedProject.value?.statuses?.[0]?.id || '';
+        form.parent_task_id = props.defaults?.parent_task_id || '';
+        form.due_date = props.defaults?.due_date || '';
     }
 );
 watch(

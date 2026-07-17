@@ -12,3 +12,12 @@ export const formatDate = (
         ? fallback
         : new Intl.DateTimeFormat('en-US', options).format(date);
 };
+
+export const formatShortDate = (value: string | null | undefined, fallback = '—'): string =>
+    formatDate(value, { month: 'short', day: '2-digit', year: '2-digit' }, fallback);
+
+export const formatMediumDate = (value: string | null | undefined, fallback = '—'): string =>
+    formatDate(value, { month: 'short', day: 'numeric', year: 'numeric' }, fallback);
+
+export const formatLongDate = (value: string | null | undefined, fallback = '—'): string =>
+    formatDate(value, { month: 'long', day: 'numeric', year: 'numeric' }, fallback);

@@ -1,23 +1,26 @@
-<script setup>
+<script setup lang="ts">
 import AppSelect from '@/Components/ui/AppSelect.vue';
-import { router, useForm, usePage } from '@inertiajs/vue3';
+import { useTaskComposer } from '@/composables/useTaskComposer';
+import { taskService } from '@/services/taskService';
+import { TASK_PRIORITY_OPTIONS } from '@/constants/taskPriority';
+import type { Task, TaskSubtask } from '@/types/task';
+import { useForm } from '@inertiajs/vue3';
 import { CornerDownLeft, ListTree, Plus, X } from 'lucide-vue-next';
 import { computed, nextTick, ref } from 'vue';
 
-const props = defineProps({ task: Object });
+const props = defineProps<{ task: Task }>();
 const adding = ref(false);
-const input = ref(null);
+const input = ref<HTMLInputElement | null>(null);
 const form = useForm({
     project_id: props.task.project_id,
     status_id: props.task.status_id,
     parent_task_id: props.task.id,
     title: '',
     priority: 'medium',
-    assignee_ids: [],
+    assignee_ids: [] as number[],
 });
-const project = computed(() =>
-    usePage().props.taskComposer?.projects?.find((item) => item.id === props.task.project_id)
-);
+const { findProject } = useTaskComposer();
+const project = computed(() => findProject(props.task.project_id));
 const statusOptions = computed(() =>
     (project.value?.statuses || []).map((status) => ({ value: status.id, label: status.name }))
 );
@@ -28,10 +31,7 @@ const memberOptions = computed(() =>
         avatar: member.avatar,
     }))
 );
-const priorityOptions = ['urgent', 'high', 'medium', 'low'].map((priority) => ({
-    value: priority,
-    label: priority[0].toUpperCase() + priority.slice(1),
-}));
+const priorityOptions = TASK_PRIORITY_OPTIONS;
 const completed = computed(
     () =>
         props.task.subtasks?.filter((item) => item.status?.name?.toLowerCase() === 'completed')
@@ -55,9 +55,13 @@ const submit = () => {
     if (!form.title.trim()) return;
     form.post(route('tasks.store'), { preserveScroll: true, onSuccess: cancel });
 };
-const update = (subtask, field, value) =>
-    router.patch(
-        route('tasks.update', subtask.id),
+const update = (
+    subtask: TaskSubtask,
+    field: 'priority' | 'assignee_ids' | 'status_id',
+    value: string | number | null
+) =>
+    taskService.update(
+        subtask.id,
         field === 'assignee_ids' ? { assignee_ids: value ? [value] : [] } : { [field]: value },
         { preserveScroll: true }
     );
