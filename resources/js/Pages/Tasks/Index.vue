@@ -4,7 +4,7 @@ import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
-import { formatDate } from '@/lib/date';
+import { formatDate } from '@/utils/date';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
     CheckSquare,

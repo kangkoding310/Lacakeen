@@ -6,8 +6,8 @@ import EmptyState from '@/Components/ui/EmptyState.vue';
 import KanbanBoard from '@/Components/KanbanBoard.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
 import TaskDetailDrawer from '@/Components/TaskDetailDrawer.vue';
-import { formatDate } from '@/lib/date';
-import { useDateStore } from '@/Stores/useDateStore';
+import { formatDate } from '@/utils/date';
+import { useDateStore } from '@/stores/date';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     ArrowDownUp,

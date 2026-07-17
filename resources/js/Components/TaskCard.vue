@@ -1,6 +1,6 @@
 <script setup>
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
-import { formatDate } from '@/lib/date';
+import { formatDate } from '@/utils/date';
 import { CalendarDays, MessageCircle, UserRound } from 'lucide-vue-next';
 
 defineProps({ task: Object });

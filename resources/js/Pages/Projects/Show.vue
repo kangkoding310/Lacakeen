@@ -7,7 +7,7 @@ import KanbanBoard from '@/Components/KanbanBoard.vue';
 import Modal from '@/Components/ui/Modal.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
 import TaskDetailDrawer from '@/Components/TaskDetailDrawer.vue';
-import { formatDate } from '@/lib/date';
+import { formatDate } from '@/utils/date';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';

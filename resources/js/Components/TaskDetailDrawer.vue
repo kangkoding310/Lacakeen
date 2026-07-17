@@ -2,7 +2,7 @@
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import SubtaskList from '@/Components/SubtaskList.vue';
-import { formatDate } from '@/lib/date';
+import { formatDate } from '@/utils/date';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { CalendarDays, Download, Paperclip, Send, Trash2, X } from 'lucide-vue-next';
 import { computed, watch } from 'vue';

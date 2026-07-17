@@ -1,4 +1,8 @@
-export const formatDate = (value, options, fallback = '—') => {
+export const formatDate = (
+    value: string | null | undefined,
+    options: Intl.DateTimeFormatOptions,
+    fallback = '—'
+): string => {
     if (!value) return fallback;
 
     const text = String(value);

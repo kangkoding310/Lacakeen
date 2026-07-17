@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import SubtaskList from '@/Components/SubtaskList.vue';
-import { formatDate } from '@/lib/date';
+import { formatDate } from '@/utils/date';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Download, Paperclip, Send } from 'lucide-vue-next';
 
