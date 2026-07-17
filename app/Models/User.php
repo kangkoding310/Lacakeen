@@ -23,6 +23,20 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Workspace::class, 'owner_id');
     }
 
+    public function workspaces()
+    {
+        return $this->belongsToMany(Workspace::class, 'workspace_members')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function currentWorkspace()
+    {
+        return $this->ownedWorkspaces()->first()
+            ?? $this->workspaces()->first()
+            ?? $this->projects()->first()?->workspace;
+    }
+
     public function projects()
     {
         return $this->belongsToMany(Project::class, 'project_members')

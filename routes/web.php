@@ -17,6 +17,7 @@ use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskStatusController;
 use App\Http\Controllers\WorkflowController;
+use App\Http\Controllers\WorkspaceController;
 use App\Notifications\MemberInvitationNotification;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
@@ -71,6 +72,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/integrations', [IntegrationController::class, 'index'])->name('integrations');
     Route::patch('/integrations/{integration}', [IntegrationController::class, 'update'])->name('integrations.update');
     Route::get('/help-center', [PageController::class, 'help'])->name('help-center');
+
+    Route::get('/workspace', [WorkspaceController::class, 'redirectToMine'])->name('workspace.show');
+    Route::get('/workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
+    Route::post('/workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
+    Route::get('/workspaces/{workspace}', [WorkspaceController::class, 'show'])->name('workspaces.show');
+    Route::patch('/workspaces/{workspace}', [WorkspaceController::class, 'update'])->name('workspaces.update');
+    Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
+    Route::post('/workspaces/{workspace}/members', [WorkspaceController::class, 'addMember'])->name('workspaces.members.store');
+    Route::patch('/workspaces/{workspace}/members/{user}', [WorkspaceController::class, 'updateMember'])->name('workspaces.members.update');
+    Route::delete('/workspaces/{workspace}/members/{user}', [WorkspaceController::class, 'removeMember'])->name('workspaces.members.destroy');
 
     Route::get('/settings/{tab?}', [SettingsController::class, 'index'])->name('settings');
     Route::patch('/settings/preferences', [SettingsController::class, 'preferences'])->name('settings.preferences');

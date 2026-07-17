@@ -5,6 +5,7 @@ import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     Bell,
+    Building2,
     CalendarDays,
     ChevronLeft,
     ChevronRight,
@@ -74,7 +75,7 @@ const dashboardItems = [
     },
     // { label: 'Workflow', route: 'workflow', match: 'workflow*', icon: Workflow },
 ];
-const toolItems = [
+const toolItems = computed(() => [
     {
         label: 'Notifications',
         route: 'notifications',
@@ -83,6 +84,9 @@ const toolItems = [
         badge: () => page.props.notifications?.unread,
     },
     { label: 'Members', route: 'members', match: 'members*', icon: Users },
+    page.props.auth.user.roles.some((role) => role.name === 'admin')
+        ? { label: 'Workspaces', route: 'workspaces.index', match: 'workspace*', icon: Building2 }
+        : { label: 'Workspace', route: 'workspace.show', match: 'workspace*', icon: Building2 },
     { label: 'Inbox', route: 'inbox', match: 'inbox', icon: Mail },
     {
         label: 'Integrations',
@@ -90,7 +94,7 @@ const toolItems = [
         match: 'integrations*',
         icon: GitBranch,
     },
-];
+]);
 const user = computed(() => page.props.auth.user);
 const projectNavigation = computed(
     () => page.props.projectNavigation || { recent: [], canCreate: false }

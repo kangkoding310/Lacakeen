@@ -48,8 +48,7 @@ class HandleInertiaRequests extends Middleware
             'projectNavigation' => fn () => $request->user() ? [
                 'recent' => Project::visibleTo($request->user())->where('status', 'active')
                     ->select('id', 'name', 'color', 'prefix')->latest('updated_at')->limit(2)->get(),
-                'workspace' => $request->user()->ownedWorkspaces()->select('id', 'name', 'owner_id')->first()
-                    ?? $request->user()->projects()->with('workspace:id,name,owner_id')->first()?->workspace,
+                'workspace' => $request->user()->currentWorkspace(),
                 'canCreate' => $request->user()->hasRole('admin') || $request->user()->ownedWorkspaces()->exists(),
             ] : ['recent' => [], 'workspace' => null, 'canCreate' => false],
             'flash' => [

@@ -15,7 +15,7 @@ class SettingsController extends Controller
 
         return Inertia::render('Settings/Index', [
             'tab' => $tab,
-            'workspace' => $request->user()->ownedWorkspaces()->first() ?? $request->user()->projects()->first()?->workspace,
+            'workspace' => $request->user()->currentWorkspace(),
         ]);
     }
 

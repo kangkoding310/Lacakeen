@@ -18,7 +18,7 @@ class ProjectController extends Controller
     {
         return Inertia::render('Projects/Index', [
             'projects' => Project::visibleTo($request->user())->withCount('tasks')->with('members:id,name,avatar')->latest()->get(),
-            'workspace' => $request->user()->ownedWorkspaces()->first() ?? $request->user()->projects()->first()?->workspace,
+            'workspace' => $request->user()->currentWorkspace(),
         ]);
     }
 
