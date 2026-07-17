@@ -35,7 +35,12 @@ const submit = () => {
     <GuestLayout>
         <Head title="Reset Password" />
 
-        <div class="mb-6"><h1 class="text-2xl font-bold text-slate-950">Choose a new password</h1><p class="mt-2 text-sm text-slate-500">Use at least eight characters and keep it unique.</p></div>
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-slate-950">Choose a new password</h1>
+            <p class="mt-2 text-sm text-slate-500">
+                Use at least eight characters and keep it unique.
+            </p>
+        </div>
 
         <form @submit.prevent="submit">
             <div>
@@ -70,10 +75,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirm Password"
-                />
+                <InputLabel for="password_confirmation" value="Confirm Password" />
 
                 <TextInput
                     id="password_confirmation"
@@ -84,10 +86,7 @@ const submit = () => {
                     autocomplete="new-password"
                 />
 
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
+                <InputError class="mt-2" :message="form.errors.password_confirmation" />
             </div>
 
             <div class="mt-4 flex items-center justify-end">

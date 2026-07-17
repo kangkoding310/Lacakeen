@@ -33,7 +33,11 @@ const submit = () => {
     <GuestLayout>
         <Head title="Log in" />
 
-        <div class="mb-7"><p class="text-xs font-bold uppercase tracking-[.18em] text-blue-600">Welcome back</p><h1 class="mt-2 text-2xl font-bold text-slate-950">Sign in to Lacakeen</h1><p class="mt-2 text-sm text-slate-500">Use your work email to continue.</p></div>
+        <div class="mb-7">
+            <p class="text-xs font-bold uppercase tracking-[.18em] text-blue-600">Welcome back</p>
+            <h1 class="mt-2 text-2xl font-bold text-slate-950">Sign in to Lacakeen</h1>
+            <p class="mt-2 text-sm text-slate-500">Use your work email to continue.</p>
+        </div>
 
         <div v-if="status" class="mb-4 text-sm font-medium text-green-600">
             {{ status }}
@@ -74,9 +78,7 @@ const submit = () => {
             <div class="mt-4 block">
                 <label class="flex items-center">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600"
-                        >Remember me</span
-                    >
+                    <span class="ms-2 text-sm text-gray-600">Remember me</span>
                 </label>
             </div>
 
@@ -98,6 +100,11 @@ const submit = () => {
                 </PrimaryButton>
             </div>
         </form>
-        <p class="mt-6 text-center text-sm text-slate-500">New to Lacakeen? <Link :href="route('register')" class="font-semibold text-blue-600">Create an account</Link></p>
+        <p class="mt-6 text-center text-sm text-slate-500">
+            New to Lacakeen?
+            <Link :href="route('register')" class="font-semibold text-blue-600"
+                >Create an account</Link
+            >
+        </p>
     </GuestLayout>
 </template>

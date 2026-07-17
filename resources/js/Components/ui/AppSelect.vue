@@ -26,7 +26,11 @@ const model = defineModel();
         label="label"
         track-by="label"
     >
-        <template v-if="$slots.option" #option="slotProps"><slot name="option" v-bind="slotProps" /></template>
-        <template v-if="$slots.singlelabel" #singlelabel="slotProps"><slot name="singlelabel" v-bind="slotProps" /></template>
+        <template v-if="$slots.option" #option="slotProps"
+            ><slot name="option" v-bind="slotProps"
+        /></template>
+        <template v-if="$slots.singlelabel" #singlelabel="slotProps"
+            ><slot name="singlelabel" v-bind="slotProps"
+        /></template>
     </Multiselect>
 </template>

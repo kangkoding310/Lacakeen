@@ -27,7 +27,13 @@ const submit = () => {
     <GuestLayout>
         <Head title="Register" />
 
-        <div class="mb-7"><p class="text-xs font-bold uppercase tracking-[.18em] text-blue-600">Start collaborating</p><h1 class="mt-2 text-2xl font-bold text-slate-950">Create your account</h1><p class="mt-2 text-sm text-slate-500">Set up your Lacakeen profile in a minute.</p></div>
+        <div class="mb-7">
+            <p class="text-xs font-bold uppercase tracking-[.18em] text-blue-600">
+                Start collaborating
+            </p>
+            <h1 class="mt-2 text-2xl font-bold text-slate-950">Create your account</h1>
+            <p class="mt-2 text-sm text-slate-500">Set up your Lacakeen profile in a minute.</p>
+        </div>
 
         <form @submit.prevent="submit">
             <div>
@@ -77,10 +83,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirm Password"
-                />
+                <InputLabel for="password_confirmation" value="Confirm Password" />
 
                 <TextInput
                     id="password_confirmation"
@@ -91,10 +94,7 @@ const submit = () => {
                     autocomplete="new-password"
                 />
 
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
+                <InputError class="mt-2" :message="form.errors.password_confirmation" />
             </div>
 
             <div class="mt-6 flex items-center justify-between">
