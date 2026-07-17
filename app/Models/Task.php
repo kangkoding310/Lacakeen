@@ -78,4 +78,9 @@ class Task extends Model
     {
         return $this->belongsTo(Task::class, 'parent_task_id');
     }
+
+    public function calendarEvents()
+    {
+        return $this->hasMany(TaskCalendarEvent::class);
+    }
 }

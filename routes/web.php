@@ -4,6 +4,7 @@ use App\Http\Controllers\BulkTaskController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GoogleCalendarController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NotificationController;
@@ -71,6 +72,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/inbox', [PageController::class, 'inbox'])->name('inbox');
     Route::get('/integrations', [IntegrationController::class, 'index'])->name('integrations');
     Route::patch('/integrations/{integration}', [IntegrationController::class, 'update'])->name('integrations.update');
+    Route::get('/integrations/google-calendar/connect', [GoogleCalendarController::class, 'connect'])->name('integrations.google-calendar.connect');
+    Route::get('/integrations/google-calendar/callback', [GoogleCalendarController::class, 'callback'])->name('integrations.google-calendar.callback');
+    Route::delete('/integrations/google-calendar/disconnect', [GoogleCalendarController::class, 'disconnect'])->name('integrations.google-calendar.disconnect');
     Route::get('/help-center', [PageController::class, 'help'])->name('help-center');
 
     Route::get('/workspace', [WorkspaceController::class, 'redirectToMine'])->name('workspace.show');

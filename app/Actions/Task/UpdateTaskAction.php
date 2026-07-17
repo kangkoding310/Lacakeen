@@ -2,6 +2,7 @@
 
 namespace App\Actions\Task;
 
+use App\Jobs\SyncTaskCalendarEventsJob;
 use App\Models\Task;
 use App\Models\TaskActivityLog;
 use App\Models\TaskStatus;
@@ -29,6 +30,10 @@ class UpdateTaskAction
         }
 
         TaskActivityLog::create(['task_id' => $task->id, 'user_id' => $user->id, 'action' => 'updated', 'meta' => ['fields' => array_keys($data)]]);
+
+        if (array_intersect(['due_date', 'assignee_ids', 'title'], array_keys($data))) {
+            SyncTaskCalendarEventsJob::dispatch($task);
+        }
 
         return $task;
     }

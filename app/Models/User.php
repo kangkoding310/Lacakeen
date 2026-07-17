@@ -55,6 +55,11 @@ class User extends Authenticatable implements MustVerifyEmail
             ->withPivot('last_read_at');
     }
 
+    public function googleCalendarAccount()
+    {
+        return $this->hasOne(GoogleCalendarAccount::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

@@ -8,8 +8,10 @@ use App\Actions\Task\UpdateTaskAction;
 use App\Http\Requests\Task\MoveTaskRequest;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
+use App\Jobs\DeleteTaskCalendarEventsJob;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskCalendarEvent;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,7 +78,13 @@ class TaskController extends Controller
     public function destroy(Task $task): RedirectResponse
     {
         $this->authorize('delete', $task);
+
+        $mappings = TaskCalendarEvent::where('task_id', $task->id)
+            ->get(['user_id', 'google_event_id'])->toArray();
         $task->delete();
+        if ($mappings) {
+            DeleteTaskCalendarEventsJob::dispatch($mappings);
+        }
 
         return redirect()->route('tasks.index')->with('success', 'Task deleted.');
     }

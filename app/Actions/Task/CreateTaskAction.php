@@ -2,6 +2,7 @@
 
 namespace App\Actions\Task;
 
+use App\Jobs\SyncTaskCalendarEventsJob;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskActivityLog;
@@ -49,6 +50,8 @@ class CreateTaskAction
 
         $task->assignees()->where('users.id', '!=', $creator->id)->get()
             ->each(fn ($assignee) => $assignee->notify(new TaskAssignedNotification($task)));
+
+        SyncTaskCalendarEventsJob::dispatch($task);
 
         return $task;
     }

@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\DeleteTaskCalendarEventsJob;
+use App\Jobs\SyncTaskCalendarEventsJob;
 use App\Models\Task;
+use App\Models\TaskCalendarEvent;
 use App\Models\TaskStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,9 +25,13 @@ class BulkTaskController extends Controller
         $tasks = Task::whereIn('id', $validated['task_ids'])->get();
         $tasks->each(fn ($task) => $this->authorize($validated['action'] === 'delete' ? 'delete' : 'update', $task));
 
-        DB::transaction(function () use ($validated, $tasks) {
+        $deletedMappings = [];
+
+        DB::transaction(function () use ($validated, $tasks, &$deletedMappings) {
             foreach ($tasks as $task) {
                 if ($validated['action'] === 'delete') {
+                    $deletedMappings = array_merge($deletedMappings, TaskCalendarEvent::where('task_id', $task->id)
+                        ->get(['user_id', 'google_event_id'])->toArray());
                     $task->delete();
                 } elseif ($validated['action'] === 'status') {
                     abort_unless(TaskStatus::whereKey($validated['status_id'])->where('project_id', $task->project_id)->exists(), 422, 'Status must belong to each selected task project.');
@@ -36,6 +43,13 @@ class BulkTaskController extends Controller
                 }
             }
         });
+
+        if ($deletedMappings) {
+            DeleteTaskCalendarEventsJob::dispatch($deletedMappings);
+        }
+        if ($validated['action'] === 'assign') {
+            $tasks->each(fn ($task) => SyncTaskCalendarEventsJob::dispatch($task));
+        }
 
         return back()->with('success', count($validated['task_ids']).' tasks updated.');
     }

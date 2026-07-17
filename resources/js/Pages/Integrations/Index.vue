@@ -30,6 +30,8 @@ const toggle = (integration: Integration) =>
         { connected: integration.status !== 'connected' },
         { preserveScroll: true }
     );
+const disconnectGoogleCalendar = () =>
+    router.delete(route('integrations.google-calendar.disconnect'), { preserveScroll: true });
 </script>
 <template>
     <Head title="Integrations" />
@@ -63,7 +65,34 @@ const toggle = (integration: Integration) =>
                     <p class="mt-2 text-sm leading-6 text-slate-500">
                         Sync updates and keep your team workflow connected without leaving Lacakeen.
                     </p>
+                    <p
+                        v-if="
+                            integration.type === 'google-calendar' &&
+                            integration.google_account_email
+                        "
+                        class="mt-1 text-xs text-slate-400"
+                    >
+                        Connected as {{ integration.google_account_email }}
+                    </p>
+                    <a
+                        v-if="
+                            integration.type === 'google-calendar' &&
+                            integration.status !== 'connected'
+                        "
+                        :href="route('integrations.google-calendar.connect')"
+                        class="ui-button-primary mt-5 w-full"
+                    >
+                        Connect
+                    </a>
                     <button
+                        v-else-if="integration.type === 'google-calendar'"
+                        class="ui-button-secondary mt-5 w-full text-red-600"
+                        @click="disconnectGoogleCalendar"
+                    >
+                        Disconnect
+                    </button>
+                    <button
+                        v-else
                         class="mt-5 w-full"
                         :class="
                             integration.status === 'connected'
