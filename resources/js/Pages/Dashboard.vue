@@ -7,6 +7,7 @@ import KanbanBoard from '@/Components/KanbanBoard.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
 import TaskDetailDrawer from '@/Components/TaskDetailDrawer.vue';
 import { formatDate } from '@/lib/date';
+import { useDateStore } from '@/Stores/useDateStore';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     ArrowDownUp, ArrowRight, Bolt, CalendarDays, ChartNoAxesColumn, CheckCircle2,
@@ -16,6 +17,7 @@ import {
 import { computed, ref } from 'vue';
 
 const props = defineProps({ stats: Object, projects: Array, selectedProject: Object, statuses: Array, members: Array });
+const dateStore = useDateStore();
 const activeView = ref('Kanban');
 const selectedTask = ref(null);
 const detailOpen = ref(false);
@@ -44,7 +46,7 @@ const formatTaskDate = (date) => formatDate(date, { month: 'short', day: '2-digi
         <div class="page-shell">
             <section class="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
                 <div>
-                    <p class="mb-2 text-xs font-bold uppercase tracking-[.18em] text-blue-600">Thursday focus</p>
+                    <p class="mb-2 text-xs font-bold uppercase tracking-[.18em] text-blue-600">{{ dateStore.dayName }} focus</p>
                     <h1 class="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Welcome back, {{
                         $page.props.auth.user.name.split(' ')[0] }}!</h1>
                     <p class="mt-2 text-sm text-slate-500">Stay on top of your tasks, monitor progress, and track
@@ -54,7 +56,7 @@ const formatTaskDate = (date) => formatDate(date, { month: 'short', day: '2-digi
                     <AvatarStack :users="members" :max="4" size="md" />
                     <div class="w-52">
                         <AppSelect v-if="projects.length" :model-value="selectedProject?.id" :options="projectOptions"
-                        :can-clear="false" @update:model-value="switchProject" />
+                            :can-clear="false" @update:model-value="switchProject" />
                     </div>
                 </div>
             </section>
@@ -149,8 +151,8 @@ const formatTaskDate = (date) => formatDate(date, { month: 'short', day: '2-digi
                                     <td class="px-3 py-4 font-semibold text-slate-400">{{ task.code }}</td>
                                     <td class="px-3 py-4 font-semibold text-slate-800">{{ task.title }}</td>
                                     <td class="px-3 py-4"><span class="rounded-lg bg-slate-100 px-2 py-1 text-xs">{{
-                                            task.status?.name
-                                            }}</span></td>
+                                        task.status?.name
+                                    }}</span></td>
                                     <td class="px-3 py-4 capitalize">{{ task.priority }}</td>
                                     <td class="px-3 py-4">
                                         <AvatarStack :users="task.assignees" />
@@ -172,7 +174,7 @@ const formatTaskDate = (date) => formatDate(date, { month: 'short', day: '2-digi
                                 <div class="absolute inset-y-1 flex items-center rounded-md px-3 text-[11px] font-semibold text-white shadow-sm"
                                     :style="{ left: `${(task.order * 7) % 55}%`, width: '35%', backgroundColor: task.project.color }">
                                     {{
-                                    formatTaskDate(task.due_date) }}</div>
+                                        formatTaskDate(task.due_date) }}</div>
                             </div>
                         </div>
                         <EmptyState v-if="!allTasks.length" title="Nothing on the timeline" />

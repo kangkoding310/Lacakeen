@@ -1,5 +1,7 @@
 <script setup>
 import { CheckCircle2, LayoutDashboard, Sparkles } from 'lucide-vue-next';
+import logoPath from '@/Assets/images/lacakeen-logo.png'
+
 </script>
 <template>
     <main class="grid min-h-screen bg-white lg:grid-cols-[1.05fr_.95fr]">
@@ -8,9 +10,18 @@ import { CheckCircle2, LayoutDashboard, Sparkles } from 'lucide-vue-next';
             <div
                 class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(37,99,235,.45),transparent_38%),radial-gradient(circle_at_80%_75%,rgba(124,58,237,.35),transparent_42%)]" />
             <div class="relative flex items-center gap-3">
-                <div class="grid h-11 w-11 place-items-center rounded-2xl bg-white text-xl font-black text-blue-700">L
-                </div><span class="text-xl font-bold">Lacakeen</span><span
-                    class="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-bold">Task</span>
+                <!-- <div class="grid h-11 w-11 place-items-center rounded-2xl bg-white text-xl font-black text-blue-700">L
+                </div> -->
+                <img :src="logoPath" alt="logo"
+                    class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-lg font-black text-white shadow-lg shadow-blue-500/20">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-base font-bold tracking-tight">Lacakeen</span>
+                    </div>
+                    <p class="truncate text-[11px] text-slate-50">
+                        Your Daily Task Manager
+                    </p>
+                </div>
             </div>
             <div class="relative max-w-xl"><span
                     class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-blue-200">

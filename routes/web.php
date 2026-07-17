@@ -17,9 +17,19 @@ use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskStatusController;
 use App\Http\Controllers\WorkflowController;
+use App\Notifications\MemberInvitationNotification;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 Route::redirect('/', '/dashboard');
+
+Route::get('/test-mail', function () {
+    Notification::route('mail', 'fminallah30@gmail.com')
+        ->notify(new MemberInvitationNotification(Str::random(64)));
+
+    return 'Email sent';
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
