@@ -59,6 +59,21 @@ a {
     .table-shell {
         @apply overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm;
     }
+    .tiptap-editor {
+        @apply flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-sm text-slate-900 transition;
+    }
+    .tiptap-editor-focused {
+        @apply border-blue-500 ring-4 ring-blue-500/10;
+    }
+    .tiptap-toolbar-btn {
+        @apply inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700;
+    }
+    .tiptap-toolbar-btn.is-active {
+        @apply bg-blue-50 text-blue-600;
+    }
+    .mention-chip {
+        @apply rounded-md bg-blue-50 px-1 py-0.5 font-semibold text-blue-700;
+    }
 }
 
 .kanban-scroll::-webkit-scrollbar {
@@ -108,4 +123,72 @@ a {
 }
 .fc .fc-daygrid-day-frame {
     min-height: 105px;
+}
+.avatar-filepond-wrap,
+.attachment-filepond-wrap {
+    flex: 1;
+    min-width: 0;
+}
+.avatar-filepond,
+.attachment-filepond {
+    margin-bottom: 0;
+    font-family: inherit;
+}
+.avatar-filepond .filepond--panel-root,
+.attachment-filepond .filepond--panel-root {
+    border-radius: 0.75rem;
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+}
+.avatar-filepond .filepond--drop-label,
+.attachment-filepond .filepond--drop-label {
+    font-size: 0.8125rem;
+    color: #64748b;
+}
+.avatar-filepond .filepond--drop-label {
+    min-height: 5rem;
+}
+.filepond--label-action {
+    text-decoration-color: #2563eb;
+    color: #2563eb;
+}
+.tiptap-content {
+    outline: none;
+}
+.tiptap-content p {
+    margin: 0.25rem 0;
+}
+.tiptap-content p:first-child {
+    margin-top: 0;
+}
+.tiptap-content p:last-child {
+    margin-bottom: 0;
+}
+.tiptap-content ul,
+.tiptap-content ol {
+    margin: 0.25rem 0;
+    padding-left: 1.25rem;
+}
+.tiptap-content ul {
+    list-style: disc;
+}
+.tiptap-content ol {
+    list-style: decimal;
+}
+.tiptap-content p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: #94a3b8;
+    pointer-events: none;
+}
+:root {
+    --dp-font-family: inherit;
+    --dp-border-radius: 0.75rem;
+    --dp-cell-border-radius: 0.5rem;
+    --dp-primary-color: #2563eb;
+    --dp-primary-text-color: #fff;
+    --dp-border-color: #e2e8f0;
+    --dp-border-color-hover: #cbd5e1;
+    --dp-border-color-focus: #3b82f6;
 }

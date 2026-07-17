@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessageSent;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,6 +26,8 @@ class ChatController extends Controller
         return Inertia::render('Chat/Index', [
             'conversations' => $conversations,
             'activeConversation' => $active?->load(['participants:id,name,avatar', 'messages' => fn ($query) => $query->with('sender:id,name,avatar')->reorder()->oldest()]),
+            'members' => User::where('status', 'active')->where('id', '!=', $request->user()->id)
+                ->select('id', 'name', 'email', 'avatar')->orderBy('name')->get(),
         ]);
     }
 
@@ -31,7 +35,9 @@ class ChatController extends Controller
     {
         $this->authorize('view', $conversation);
         $validated = $request->validate(['body' => ['required', 'string', 'max:10000']]);
-        Message::create([...$validated, 'conversation_id' => $conversation->id, 'sender_id' => $request->user()->id]);
+        $message = Message::create([...$validated, 'conversation_id' => $conversation->id, 'sender_id' => $request->user()->id]);
+
+        broadcast(new MessageSent($message))->toOthers();
 
         return back();
     }

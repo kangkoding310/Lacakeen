@@ -122,7 +122,7 @@ onBeforeUnmount(() => {
     <div
         v-if="columns.length"
         ref="board"
-        class="kanban-scroll flex gap-4 overflow-x-auto pb-2"
+        class="kanban-scroll flex items-start gap-4 overflow-x-auto pb-2"
         :class="contained ? 'h-full min-h-0' : 'min-h-[460px]'"
     >
         <section
@@ -198,8 +198,8 @@ onBeforeUnmount(() => {
                 v-model="column.tasks"
                 group="tasks"
                 item-key="id"
-                class="min-h-10 space-y-2.5"
-                :class="contained && 'flex-1 overflow-y-auto pr-1'"
+                class="space-y-2.5"
+                :class="contained && 'overflow-y-auto pr-1'"
                 ghost-class="drag-ghost"
                 :animation="180"
                 @change="changed($event, column)"

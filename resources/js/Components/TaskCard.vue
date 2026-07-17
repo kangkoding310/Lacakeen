@@ -30,6 +30,7 @@ const formatTaskDate = (date: string | null) => formatShortDate(date, 'No date')
         </h3>
         <p class="mt-1 truncate text-xs text-slate-400">{{ task.project?.name }}</p>
         <div
+            v-if="task.due_date"
             class="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-[11px] text-slate-500"
         >
             <CalendarDays class="h-3.5 w-3.5" /><span>Due to:</span

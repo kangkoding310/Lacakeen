@@ -70,20 +70,26 @@ services:
       - lacakeen-network
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-null}
 
-  # Reverb (Laravel WebSocket) - optional
+  # Reverb (Laravel WebSocket server for realtime chat)
   reverb:
-    image: node:22-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: lacakeen-reverb
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
+    ports:
+      - "${REVERB_PORT:-8080}:8080"
     networks:
       - lacakeen-network
     depends_on:
-      - app
-    command: >
-      sh -c "npm install && npx laravel-reverb start"
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
     profiles:
       - full
 

@@ -2,7 +2,9 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import { usePermissions } from '@/composables/usePermissions';
+import { FilePond } from '@/utils/filepond';
 import type { WorkspaceSummary } from '@/types/models';
+import type { FilePondFile } from 'filepond';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Check, CreditCard, KeyRound, ShieldCheck, UserRound } from 'lucide-vue-next';
 
@@ -52,6 +54,9 @@ const preferenceItems: {
         desc: 'Show in-app alerts for comments and mentions.',
     },
 ];
+const onAvatarUpdate = (files: FilePondFile[]) => {
+    profile.avatar = (files[0]?.file as File) ?? null;
+};
 const saveProfile = () =>
     profile.post(route('profile.update'), {
         forceFormData: true,
@@ -108,18 +113,25 @@ const savePassword = () =>
                                     settingsUser.avatar ||
                                     `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}`
                                 "
-                                class="h-20 w-20 rounded-2xl object-cover"
-                            /><label class="ui-button-secondary cursor-pointer"
-                                >Change photo<input
-                                    type="file"
-                                    accept="image/*"
-                                    class="hidden"
-                                    @change="
-                                        profile.avatar =
-                                            ($event.target as HTMLInputElement).files?.[0] ?? null
-                                    "
-                            /></label>
+                                class="h-20 w-20 shrink-0 rounded-2xl object-cover"
+                            />
+                            <div class="avatar-filepond-wrap">
+                                <FilePond
+                                    class-name="avatar-filepond"
+                                    credits="false"
+                                    :allow-multiple="false"
+                                    :allow-process="false"
+                                    :allow-revert="false"
+                                    :allow-reorder="false"
+                                    accepted-file-types="image/png, image/jpeg, image/webp"
+                                    max-file-size="2MB"
+                                    label-idle="Drag &amp; drop a photo or <span class=&quot;filepond--label-action&quot;>browse</span>"
+                                    label-max-file-size-exceeded="Photo is too large"
+                                    @updatefiles="onAvatarUpdate"
+                                />
+                            </div>
                         </div>
+                        <InputError :message="profile.errors.avatar" />
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label class="ui-label">Full name</label
@@ -263,7 +275,7 @@ const savePassword = () =>
                             </div>
                             <button class="ui-button-primary">Update password</button>
                         </form>
-                        <div class="mt-4 rounded-xl border border-slate-200 p-5">
+                        <!-- <div class="mt-4 rounded-xl border border-slate-200 p-5">
                             <h3 class="text-sm font-bold">Active sessions</h3>
                             <p class="mt-2 text-sm text-slate-500">
                                 This browser ·
@@ -272,7 +284,7 @@ const savePassword = () =>
                             <button class="mt-4 text-sm font-semibold text-red-600">
                                 Log out other devices
                             </button>
-                        </div>
+                        </div> -->
                     </div>
                 </section>
             </div>

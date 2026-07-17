@@ -251,7 +251,7 @@ const formatTaskDate = (date: string | null) =>
                         <table class="w-full min-w-[800px] text-left text-sm">
                             <thead>
                                 <tr
-                                    class="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400"
+                                    class="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400 [&>th]:whitespace-nowrap"
                                 >
                                     <th class="px-3 py-3">Code</th>
                                     <th class="px-3 py-3">Task</th>
@@ -268,7 +268,7 @@ const formatTaskDate = (date: string | null) =>
                                     class="cursor-pointer border-b border-slate-100 hover:bg-slate-50"
                                     @click="openTask(task)"
                                 >
-                                    <td class="px-3 py-4 font-semibold text-slate-400">
+                                    <td class="px-3 py-4 font-semibold text-slate-400 whitespace-nowrap">
                                         {{ task.code }}
                                     </td>
                                     <td class="px-3 py-4 font-semibold text-slate-800">
@@ -283,7 +283,7 @@ const formatTaskDate = (date: string | null) =>
                                     <td class="px-3 py-4">
                                         <AvatarStack :users="task.assignees" />
                                     </td>
-                                    <td class="px-3 py-4 text-slate-500">
+                                    <td class="px-3 py-4 text-slate-500 whitespace-nowrap">
                                         {{ formatTaskDate(task.due_date) }}
                                     </td>
                                 </tr>

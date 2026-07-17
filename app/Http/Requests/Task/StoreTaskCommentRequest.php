@@ -11,6 +11,13 @@ class StoreTaskCommentRequest extends FormRequest
         return $this->user()->can('view', $this->route('task'));
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('comment')) {
+            $this->merge(['comment' => clean($this->input('comment'), 'task_content')]);
+        }
+    }
+
     public function rules(): array
     {
         return [

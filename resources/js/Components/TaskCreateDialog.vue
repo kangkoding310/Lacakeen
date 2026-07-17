@@ -2,8 +2,10 @@
 import Modal from '@/Components/ui/Modal.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import InputError from '@/Components/InputError.vue';
+import RichTextEditor from '@/Components/ui/RichTextEditor.vue';
 import { useTaskComposer } from '@/composables/useTaskComposer';
 import { TASK_PRIORITY_OPTIONS } from '@/constants/taskPriority';
+import { VueDatePicker } from '@vuepic/vue-datepicker';
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 
@@ -45,6 +47,14 @@ const statusOptions = computed(() =>
     }))
 );
 const priorityOptions = TASK_PRIORITY_OPTIONS;
+const dateRange = computed({
+    get: (): [string, string] | null =>
+        form.start_date && form.due_date ? [form.start_date, form.due_date] : null,
+    set: (value: [string, string] | null) => {
+        form.start_date = value?.[0] ?? '';
+        form.due_date = value?.[1] ?? '';
+    },
+});
 
 watch(
     () => props.open,
@@ -114,14 +124,14 @@ const submit = () =>
                 </div>
             </div>
             <div>
-                <label class="ui-label">Description</label
-                ><textarea
+                <label class="ui-label">Description</label>
+                <RichTextEditor
                     v-model="form.description"
-                    class="ui-input min-h-24 resize-y py-2.5"
-                    placeholder="Add context and acceptance criteria…"
+                    placeholder="Add context and acceptance criteria… use @ to mention someone"
+                    :mention-users="selectedProject?.members || []"
                 />
             </div>
-            <div class="grid gap-4 sm:grid-cols-3">
+            <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="ui-label">Priority</label>
                     <AppSelect
@@ -132,12 +142,15 @@ const submit = () =>
                     />
                 </div>
                 <div>
-                    <label class="ui-label">Start date</label
-                    ><input v-model="form.start_date" type="date" class="ui-input" />
-                </div>
-                <div>
-                    <label class="ui-label">Due date</label
-                    ><input v-model="form.due_date" type="date" class="ui-input" />
+                    <label class="ui-label">Start &amp; due date</label>
+                    <VueDatePicker
+                        v-model="dateRange"
+                        range
+                        model-type="yyyy-MM-dd"
+                        format="dd MMM yyyy"
+                        input-class-name="ui-input"
+                        placeholder="Select start &amp; due date"
+                    />
                     <InputError class="mt-1" :message="form.errors.due_date" />
                 </div>
             </div>

@@ -39,21 +39,41 @@ class ProjectController extends Controller
         $this->authorize('view', $project);
 
         $tasks = $project->tasks()->whereNull('parent_task_id')->with([
-            'project:id,name,color', 'status:id,name,color', 'assignees:id,name,avatar', 'comments.user:id,name,avatar',
-            'attachments', 'activityLogs.user:id,name,avatar', 'labels:id,name,color',
-            'subtasks.status:id,name,color', 'subtasks.assignees:id,name,avatar',
+            'project:id,name,color',
+            'status:id,name,color',
+            'assignees:id,name,avatar',
+            'comments.user:id,name,avatar',
+            'attachments',
+            'activityLogs.user:id,name,avatar',
+            'labels:id,name,color',
+            'subtasks.status:id,name,color',
+            'subtasks.assignees:id,name,avatar',
         ])->orderBy('order')->get();
 
+        $resProject = $project
+            ->load([
+                'members' => fn($query) => $query
+                    ->select('users.id', 'users.name', 'users.email', 'users.avatar')
+                    ->orderByPivot('created_at', 'asc'),
+
+                'statuses' => fn($query) => $query->withCount('tasks'),
+            ])
+            ->loadCount('tasks');
+
         return Inertia::render('Projects/Show', [
-            'project' => $project->load(['members:id,name,email,avatar', 'statuses' => fn ($query) => $query->withCount('tasks')])->loadCount('tasks'),
-            'statuses' => $project->statuses->map(fn ($status) => [
-                ...$status->toArray(), 'tasks' => $tasks->where('status_id', $status->id)->values(),
+            'project' => $resProject,
+            'statuses' => $project->statuses->map(fn($status) => [
+                ...$status->toArray(),
+                'tasks' => $tasks->where('status_id', $status->id)->values(),
             ]),
             'tasks' => $tasks,
-            'events' => $tasks->whereNotNull('due_date')->map(fn ($task) => [
-                'id' => $task->id, 'title' => "{$task->code} · {$task->title}",
-                'start' => $task->due_date->toDateString(), 'allDay' => true,
-                'backgroundColor' => $project->color, 'extendedProps' => ['type' => 'task'],
+            'events' => $tasks->whereNotNull('due_date')->map(fn($task) => [
+                'id' => $task->id,
+                'title' => "{$task->code} · {$task->title}",
+                'start' => $task->due_date->toDateString(),
+                'allDay' => true,
+                'backgroundColor' => $project->color,
+                'extendedProps' => ['type' => 'task'],
             ])->values(),
             'tab' => $request->string('tab')->value() ?: 'summary',
             'availableMembers' => User::where('status', 'active')->whereNotIn('id', $project->members()->pluck('users.id'))

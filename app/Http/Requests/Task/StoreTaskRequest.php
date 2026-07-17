@@ -18,6 +18,13 @@ class StoreTaskRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('description')) {
+            $this->merge(['description' => clean($this->input('description'), 'task_content')]);
+        }
+    }
+
     public function rules(): array
     {
         return [

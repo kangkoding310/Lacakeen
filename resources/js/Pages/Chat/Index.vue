@@ -2,39 +2,160 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import Modal from '@/Components/ui/Modal.vue';
 import { usePermissions } from '@/composables/usePermissions';
-import type { ConversationSummary } from '@/types/conversation';
+import { conversationService } from '@/services/conversationService';
+import type { ChatMessage, ConversationSummary } from '@/types/conversation';
+import type { TaskAssignee } from '@/types/task';
+import { echo } from '@laravel/echo-vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal, Paperclip, Phone, Search, Send, Video } from 'lucide-vue-next';
-import { nextTick, onMounted, ref } from 'vue';
+import {
+    MessageSquarePlus,
+    MoreHorizontal,
+    Paperclip,
+    Phone,
+    Search,
+    Send,
+    Video,
+} from 'lucide-vue-next';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
     conversations: ConversationSummary[];
     activeConversation: ConversationSummary | null;
+    members: TaskAssignee[];
 }>();
 const { currentUser } = usePermissions();
+
+// Local reactive copies so realtime events can mutate state without waiting on an Inertia reload.
+const conversations = ref<ConversationSummary[]>([...props.conversations]);
+const activeConversation = ref<ConversationSummary | null>(
+    props.activeConversation ? { ...props.activeConversation } : null
+);
+watch(
+    () => props.conversations,
+    (value) => {
+        conversations.value = [...value];
+    }
+);
+watch(
+    () => props.activeConversation,
+    (value) => {
+        activeConversation.value = value ? { ...value } : null;
+    }
+);
+
 const form = useForm({ body: '' });
 const messageList = ref<HTMLElement | null>(null);
+const scrollToBottom = () =>
+    nextTick(() =>
+        messageList.value?.scrollTo({ top: messageList.value.scrollHeight, behavior: 'smooth' })
+    );
 const send = () =>
-    form.post(route('chat.messages.store', props.activeConversation!.id), {
+    form.post(route('chat.messages.store', activeConversation.value!.id), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
-            nextTick(() =>
-                messageList.value?.scrollTo({
-                    top: messageList.value.scrollHeight,
-                    behavior: 'smooth',
-                })
-            );
+            scrollToBottom();
         },
     });
 const time = (date: string) =>
     new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(date));
+
+// --- Start a new conversation (direct or group) ---
+const newConversationOpen = ref(false);
+const memberSearch = ref('');
+const selectedMemberIds = ref<number[]>([]);
+const groupName = ref('');
+const creatingConversation = ref(false);
+const filteredMembers = computed(() =>
+    props.members.filter((member) =>
+        member.name.toLowerCase().includes(memberSearch.value.toLowerCase())
+    )
+);
+const toggleMember = (memberId: number) => {
+    selectedMemberIds.value = selectedMemberIds.value.includes(memberId)
+        ? selectedMemberIds.value.filter((id) => id !== memberId)
+        : [...selectedMemberIds.value, memberId];
+};
+const closeNewConversation = () => {
+    newConversationOpen.value = false;
+    selectedMemberIds.value = [];
+    memberSearch.value = '';
+    groupName.value = '';
+};
+const submitNewConversation = () => {
+    if (!selectedMemberIds.value.length) return;
+    creatingConversation.value = true;
+    conversationService.store(
+        {
+            user_ids: selectedMemberIds.value,
+            name: selectedMemberIds.value.length > 1 ? groupName.value || null : null,
+        },
+        {
+            onSuccess: closeNewConversation,
+            onFinish: () => {
+                creatingConversation.value = false;
+            },
+        }
+    );
+};
+
+// --- Realtime (Reverb via Laravel Echo) ---
+const subscribedConversations = new Set<string>();
+const subscribeToConversation = (conversationId: string) => {
+    if (subscribedConversations.has(conversationId)) return;
+    subscribedConversations.add(conversationId);
+    echo()
+        .private(`conversation.${conversationId}`)
+        .listen('.MessageSent', (event: { message: ChatMessage }) => {
+            const inList = conversations.value.find((item) => item.id === conversationId);
+            if (inList) inList.messages = [event.message];
+            conversations.value.sort((a, b) =>
+                a.id === conversationId ? -1 : b.id === conversationId ? 1 : 0
+            );
+
+            if (activeConversation.value?.id === conversationId) {
+                activeConversation.value.messages = [
+                    ...(activeConversation.value.messages ?? []),
+                    event.message,
+                ];
+                scrollToBottom();
+            }
+        });
+};
+const unsubscribeFromConversation = (conversationId: string) => {
+    echo().leave(`conversation.${conversationId}`);
+    subscribedConversations.delete(conversationId);
+};
+watch(
+    conversations,
+    (list) => {
+        const currentIds = new Set(list.map((item) => item.id));
+        subscribedConversations.forEach((id) => {
+            if (!currentIds.has(id)) unsubscribeFromConversation(id);
+        });
+        list.forEach((item) => subscribeToConversation(item.id));
+    },
+    { immediate: true, deep: false }
+);
+echo()
+    .private(`App.Models.User.${currentUser.value.id}`)
+    .listen('.ConversationCreated', (event: { conversation: ConversationSummary }) => {
+        if (!conversations.value.some((item) => item.id === event.conversation.id)) {
+            conversations.value = [event.conversation, ...conversations.value];
+        }
+    });
+
 onMounted(() =>
     nextTick(() => {
         if (messageList.value) messageList.value.scrollTop = messageList.value.scrollHeight;
     })
 );
+onBeforeUnmount(() => {
+    subscribedConversations.forEach((id) => echo().leave(`conversation.${id}`));
+    echo().leave(`App.Models.User.${currentUser.value.id}`);
+});
 </script>
 
 <template>
@@ -49,7 +170,12 @@ onMounted(() =>
                     :class="activeConversation ? 'hidden md:flex' : 'flex'"
                 >
                     <div class="border-b border-slate-100 p-4">
-                        <h1 class="text-xl font-bold">Messages</h1>
+                        <div class="flex items-center justify-between">
+                            <h1 class="text-xl font-bold">Messages</h1>
+                            <div @click="newConversationOpen = true" class="flex items-center justify-center cursor-pointer w-10 h-10 rounded-lg bg-blue-600 text-white shadow-xl transition hover:bg-blue-700">
+                                <MessageSquarePlus class="h-5 w-5" />
+                            </div>
+                        </div>
                         <div class="relative mt-4">
                             <Search
                                 class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
@@ -80,7 +206,9 @@ onMounted(() =>
                                     <p class="truncate text-sm font-bold text-slate-800">
                                         {{
                                             conversation.name ||
-                                            conversation.participants.map((p) => p.name).join(', ')
+                                            conversation.participants.find(
+                                                (p) => p.id !== currentUser.id
+                                            )?.name
                                         }}
                                     </p>
                                     <span class="text-[10px] text-slate-400">{{
@@ -108,7 +236,14 @@ onMounted(() =>
                             />
                             <div>
                                 <p class="text-sm font-bold">
-                                    {{ activeConversation.name || 'Direct message' }}
+                                    {{
+                                        activeConversation.name ||
+                                        (activeConversation.type === 'group'
+                                            ? activeConversation.participants
+                                                  .map((p) => p.name)
+                                                  .join(', ')
+                                            : 'Direct message')
+                                    }}
                                 </p>
                                 <p class="text-[11px] text-emerald-600">
                                     {{ activeConversation.participants.length }} members · Active
@@ -133,7 +268,7 @@ onMounted(() =>
                                 :key="message.id"
                                 class="flex gap-3"
                                 :class="
-                                    message.sender_id === currentUser.id ? 'flex-row-reverse' : ''
+                                    message.sender_id === currentUser.id ? 'flex-row-reverse [&>div]:items-end' : '[&>div]:items-start'
                                 "
                             >
                                 <img
@@ -143,13 +278,13 @@ onMounted(() =>
                                     "
                                     class="h-8 w-8 rounded-full object-cover"
                                 />
-                                <div class="max-w-[75%]">
+                                <div class="max-w-[75%] flex flex-col">
                                     <div
-                                        class="rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm"
+                                        class="inline-flex rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm"
                                         :class="
                                             message.sender_id === currentUser.id
                                                 ? 'rounded-tr-md bg-blue-600 text-white'
-                                                : 'rounded-tl-md bg-white text-slate-700'
+                                                : 'rounded-tl-md bg-slate-200 text-slate-700'
                                         "
                                     >
                                         {{ message.body }}
@@ -199,6 +334,82 @@ onMounted(() =>
                         description="Select a conversation from the list."
                     />
                 </div>
-            </div></div
-    ></AppLayout>
+            </div>
+        </div>
+        <!-- <button
+            class="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-blue-600 text-white shadow-xl transition hover:bg-blue-700"
+            aria-label="Start a new conversation"
+            title="Start a new conversation"
+            @click="newConversationOpen = true"
+        >
+            <MessageSquarePlus class="h-6 w-6" />
+        </button> -->
+        <Modal
+            :open="newConversationOpen"
+            title="Start a new conversation"
+            description="Pick one person for a direct message, or several for a group."
+            @close="closeNewConversation"
+        >
+            <div class="space-y-4">
+                <div class="relative">
+                    <Search
+                        class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                    /><input
+                        v-model="memberSearch"
+                        class="ui-input pl-9"
+                        placeholder="Search people"
+                    />
+                </div>
+                <div
+                    class="max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200"
+                >
+                    <label
+                        v-for="member in filteredMembers"
+                        :key="member.id"
+                        class="flex cursor-pointer items-center gap-3 p-3 hover:bg-slate-50"
+                    >
+                        <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-blue-600"
+                            :checked="selectedMemberIds.includes(member.id)"
+                            @change="toggleMember(member.id)"
+                        />
+                        <img
+                            :src="
+                                member.avatar ||
+                                `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}`
+                            "
+                            class="h-8 w-8 rounded-full object-cover"
+                        />
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold">{{ member.name }}</p>
+                            <p class="truncate text-xs text-slate-400">{{ member.email }}</p>
+                        </div>
+                    </label>
+                    <p
+                        v-if="!filteredMembers.length"
+                        class="p-4 text-center text-sm text-slate-400"
+                    >
+                        No matching people.
+                    </p>
+                </div>
+                <div v-if="selectedMemberIds.length > 1">
+                    <label class="ui-label">Group name (optional)</label>
+                    <input v-model="groupName" class="ui-input" placeholder="e.g. Design squad" />
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="ui-button-secondary" @click="closeNewConversation">
+                        Cancel
+                    </button>
+                    <button
+                        class="ui-button-primary"
+                        :disabled="!selectedMemberIds.length || creatingConversation"
+                        @click="submitNewConversation"
+                    >
+                        {{ selectedMemberIds.length > 1 ? 'Create group' : 'Start conversation' }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
+    </AppLayout>
 </template>

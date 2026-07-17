@@ -3,6 +3,7 @@
 use App\Http\Controllers\BulkTaskController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GoogleCalendarController;
 use App\Http\Controllers\IntegrationController;
@@ -55,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/chat/{conversation?}', [ChatController::class, 'index'])->name('chat');
     Route::post('/chat/{conversation}/messages', [ChatController::class, 'store'])->name('chat.messages.store');
+    Route::post('/chat/conversations', [ConversationController::class, 'store'])->name('chat.conversations.store');
     Route::get('/reporting', ReportingController::class)->name('reporting');
 
     Route::get('/workflow', [WorkflowController::class, 'index'])->name('workflow');

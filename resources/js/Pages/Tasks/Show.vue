@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
+import RichTextEditor from '@/Components/ui/RichTextEditor.vue';
 import SubtaskList from '@/Components/SubtaskList.vue';
 import { formatLongDate } from '@/utils/date';
 import type { Task } from '@/types/task';
@@ -9,11 +10,13 @@ import { ArrowLeft, Download, Paperclip, Send } from 'lucide-vue-next';
 
 const props = defineProps<{ task: Task }>();
 const comment = useForm({ comment: '' });
-const addComment = () =>
+const addComment = () => {
+    if (!comment.comment) return;
     comment.post(route('tasks.comments.store', props.task.id), {
         preserveScroll: true,
         onSuccess: () => comment.reset(),
     });
+};
 const formatTaskDate = (date: string | null) => formatLongDate(date, 'Not set');
 </script>
 
@@ -42,9 +45,14 @@ const formatTaskDate = (date: string | null) => formatLongDate(date, 'Not set');
                             >{{ task.priority }}</span
                         >
                     </div>
-                    <div class="prose mt-8 max-w-none text-sm leading-7 text-slate-600">
-                        {{ task.description || 'No description has been added yet.' }}
-                    </div>
+                    <div
+                        v-if="task.description"
+                        class="tiptap-content prose mt-8 max-w-none text-sm leading-7 text-slate-600"
+                        v-html="task.description"
+                    />
+                    <p v-else class="mt-8 text-sm leading-7 text-slate-400">
+                        No description has been added yet.
+                    </p>
                     <SubtaskList
                         v-if="!task.parent_task_id"
                         class="mt-8 border-t border-slate-100 pt-6"
@@ -52,14 +60,21 @@ const formatTaskDate = (date: string | null) => formatLongDate(date, 'Not set');
                     />
                     <section class="mt-8 border-t border-slate-100 pt-6">
                         <h2 class="font-bold">Comments ({{ task.comments.length }})</h2>
-                        <form class="mt-4 flex gap-2" @submit.prevent="addComment">
-                            <input
+                        <form class="mt-4 space-y-2" @submit.prevent="addComment">
+                            <RichTextEditor
                                 v-model="comment.comment"
-                                class="ui-input"
-                                placeholder="Share an update…"
-                            /><button class="ui-button-primary w-11 px-0">
-                                <Send class="h-4 w-4" />
-                            </button>
+                                placeholder="Share an update… use @ to mention someone"
+                                min-height-class="min-h-16"
+                                :mention-users="task.assignees"
+                            />
+                            <div class="flex justify-end">
+                                <button
+                                    class="ui-button-primary w-11 px-0"
+                                    :disabled="comment.processing || !comment.comment"
+                                >
+                                    <Send class="h-4 w-4" />
+                                </button>
+                            </div>
                         </form>
                         <div class="mt-6 space-y-4">
                             <div v-for="item in task.comments" :key="item.id" class="flex gap-3">
@@ -77,7 +92,10 @@ const formatTaskDate = (date: string | null) => formatLongDate(date, 'Not set');
                                             formatTaskDate(item.created_at)
                                         }}</span>
                                     </p>
-                                    <p class="mt-1 text-sm text-slate-600">{{ item.comment }}</p>
+                                    <div
+                                        class="tiptap-content mt-1 text-sm text-slate-600"
+                                        v-html="item.comment"
+                                    />
                                 </div>
                             </div>
                         </div>

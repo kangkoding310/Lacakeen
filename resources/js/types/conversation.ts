@@ -14,6 +14,7 @@ export interface ChatMessage {
 
 export interface ConversationSummary {
     id: string;
+    type: 'direct' | 'group';
     name: string | null;
     participants: ChatParticipant[];
     messages?: ChatMessage[];

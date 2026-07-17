@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
+import RichTextEditor from '@/Components/ui/RichTextEditor.vue';
 import SubtaskList from '@/Components/SubtaskList.vue';
 import { formatMediumDate } from '@/utils/date';
 import { useTaskComposer } from '@/composables/useTaskComposer';
 import { taskService } from '@/services/taskService';
 import { TASK_PRIORITY_OPTIONS } from '@/constants/taskPriority';
+import { FilePond } from '@/utils/filepond';
 import type { Task, TaskStatusRef } from '@/types/task';
+import type { FilePondFile } from 'filepond';
 import { Link, useForm } from '@inertiajs/vue3';
 import { Download, Paperclip, Send, Trash2, X } from 'lucide-vue-next';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
     task: Task | null;
@@ -55,22 +58,28 @@ const save = () => {
     if (props.task) edit.patch(route('tasks.update', props.task.id), { preserveScroll: true });
 };
 const addComment = () => {
-    if (!props.task) return;
+    if (!props.task || !comment.comment) return;
     comment.post(route('tasks.comments.store', props.task.id), {
         preserveScroll: true,
         onSuccess: () => comment.reset(),
     });
 };
+const attachmentPond = ref<{ removeFiles: () => void } | null>(null);
 const upload = () => {
     if (!props.task) return;
     attachment.post(route('tasks.attachments.store', props.task.id), {
         forceFormData: true,
         preserveScroll: true,
-        onSuccess: () => attachment.reset(),
+        onSuccess: () => {
+            attachment.reset();
+            attachmentPond.value?.removeFiles();
+        },
     });
 };
-const onAttachmentSelected = (event: Event) => {
-    attachment.attachment = (event.target as HTMLInputElement).files?.[0] ?? null;
+const onAttachmentUpdate = (files: FilePondFile[]) => {
+    const file = files[0]?.file as File | undefined;
+    if (!file) return;
+    attachment.attachment = file;
     upload();
 };
 const remove = () => {
@@ -141,11 +150,11 @@ const formatTaskDate = (date: string | null) => formatMediumDate(date);
                             /><input v-model="edit.due_date" type="date" class="ui-input" />
                         </div>
                         <div>
-                            <label class="ui-label">Description</label
-                            ><textarea
+                            <label class="ui-label">Description</label>
+                            <RichTextEditor
                                 v-model="edit.description"
-                                class="ui-input min-h-32 resize-y py-3"
-                                placeholder="Add a description…"
+                                placeholder="Add a description… use @ to mention someone"
+                                :mention-users="projectData?.members || []"
                             />
                         </div>
                         <div>
@@ -214,17 +223,25 @@ const formatTaskDate = (date: string | null) => formatMediumDate(date);
                     />
 
                     <section class="mt-8 border-t border-slate-100 pt-6">
-                        <div class="mb-3 flex items-center justify-between">
-                            <h3 class="font-bold text-slate-900">Attachments</h3>
-                            <label class="ui-button-secondary h-9 cursor-pointer">
-                                <Paperclip class="h-4 w-4" />Upload<input
-                                    type="file"
-                                    class="hidden"
-                                    @change="onAttachmentSelected"
-                                />
-                            </label>
+                        <h3 class="mb-3 flex items-center gap-2 font-bold text-slate-900">
+                            <Paperclip class="h-4 w-4" />Attachments
+                        </h3>
+                        <div class="attachment-filepond-wrap">
+                            <FilePond
+                                ref="attachmentPond"
+                                class-name="attachment-filepond"
+                                credits="false"
+                                :allow-multiple="false"
+                                :allow-process="false"
+                                :allow-revert="false"
+                                :allow-reorder="false"
+                                max-file-size="10MB"
+                                label-idle="Drag &amp; drop a file or <span class=&quot;filepond--label-action&quot;>browse</span>"
+                                label-max-file-size-exceeded="File is too large"
+                                @updatefiles="onAttachmentUpdate"
+                            />
                         </div>
-                        <div v-if="task.attachments?.length" class="space-y-2">
+                        <div v-if="task.attachments?.length" class="mt-3 space-y-2">
                             <a
                                 v-for="file in task.attachments"
                                 :key="file.id"
@@ -235,7 +252,7 @@ const formatTaskDate = (date: string | null) => formatMediumDate(date);
                                 <Download class="h-4 w-4 text-slate-400" />
                             </a>
                         </div>
-                        <p v-else class="text-sm text-slate-400">No attachments yet.</p>
+                        <p v-else class="mt-3 text-sm text-slate-400">No attachments yet.</p>
                     </section>
 
                     <section class="mt-8 border-t border-slate-100 pt-6">
@@ -243,17 +260,21 @@ const formatTaskDate = (date: string | null) => formatMediumDate(date);
                             Comments
                             <span class="text-slate-400">{{ task.comments?.length || 0 }}</span>
                         </h3>
-                        <form class="mt-3 flex gap-2" @submit.prevent="addComment">
-                            <input
+                        <form class="mt-3 space-y-2" @submit.prevent="addComment">
+                            <RichTextEditor
                                 v-model="comment.comment"
-                                class="ui-input"
-                                placeholder="Write a comment…"
-                            /><button
-                                class="ui-button-primary w-11 px-0"
-                                :disabled="comment.processing"
-                            >
-                                <Send class="h-4 w-4" />
-                            </button>
+                                placeholder="Write a comment… use @ to mention someone"
+                                min-height-class="min-h-16"
+                                :mention-users="projectData?.members || []"
+                            />
+                            <div class="flex justify-end">
+                                <button
+                                    class="ui-button-primary w-11 px-0"
+                                    :disabled="comment.processing || !comment.comment"
+                                >
+                                    <Send class="h-4 w-4" />
+                                </button>
+                            </div>
                         </form>
                         <div class="mt-5 space-y-4">
                             <div
@@ -275,7 +296,10 @@ const formatTaskDate = (date: string | null) => formatMediumDate(date);
                                             formatTaskDate(item.created_at)
                                         }}</span>
                                     </p>
-                                    <p class="mt-1 text-sm text-slate-600">{{ item.comment }}</p>
+                                    <div
+                                        class="tiptap-content mt-1 text-sm text-slate-600"
+                                        v-html="item.comment"
+                                    />
                                 </div>
                             </div>
                         </div>

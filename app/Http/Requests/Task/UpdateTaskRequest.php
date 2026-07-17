@@ -13,6 +13,13 @@ class UpdateTaskRequest extends FormRequest
         return $this->user()->can('update', $this->route('task'));
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('description')) {
+            $this->merge(['description' => clean($this->input('description'), 'task_content')]);
+        }
+    }
+
     public function rules(): array
     {
         return [

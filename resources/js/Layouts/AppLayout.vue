@@ -49,8 +49,6 @@ const projectMenuOpen = ref(false);
 const projectMenuElement = ref(null);
 const search = ref('');
 const searchInput = ref();
-const toastVisible = ref(false);
-let toastTimer;
 
 const dashboardItems = [
     {
@@ -107,8 +105,6 @@ const team = computed(
                 (member, index, items) => items.findIndex((item) => item.id === member.id) === index
             ) ?? []
 );
-const flash = computed(() => page.props.flash?.success || page.props.flash?.error);
-
 const toggleSidebar = () => {
     collapsed.value = !collapsed.value;
     localStorage.setItem('lacakeen-sidebar', collapsed.value ? 'collapsed' : 'open');
@@ -134,28 +130,17 @@ const keyboard = (event) => {
 const closeDropdowns = (event) => {
     if (!projectMenuElement.value?.contains(event.target)) projectMenuOpen.value = false;
 };
-const showToast = () => {
-    if (!flash.value) return;
-    toastVisible.value = true;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-        toastVisible.value = false;
-    }, 3500);
-};
 const stop = router.on('finish', () => {
     mobileOpen.value = false;
     notificationOpen.value = false;
-    showToast();
 });
 onMounted(() => {
     window.addEventListener('keydown', keyboard);
     document.addEventListener('pointerdown', closeDropdowns);
-    showToast();
 });
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', keyboard);
     document.removeEventListener('pointerdown', closeDropdowns);
-    clearTimeout(toastTimer);
     stop();
 });
 </script>
@@ -189,11 +174,13 @@ onBeforeUnmount(() => {
                 :class="collapsed ? 'justify-center' : 'justify-between'"
             >
                 <Link :href="route('dashboard')" class="flex min-w-0 items-center gap-3">
-                    <img
-                        :src="logoPath"
-                        alt="logo"
-                        class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-lg font-black text-white shadow-lg shadow-blue-500/20"
-                    />
+                    <div class="rounded-xl p-[1px] bg-gradient-to-br from-blue-600 to-violet-600 text-lg font-black text-white shadow-lg shadow-blue-500/20">
+                        <img
+                            :src="logoPath"
+                            alt="logo"
+                            class="grid h-11 w-11 shrink-0 place-items-center rounded-[11px]"
+                        />
+                    </div>
                     <div v-if="!collapsed" class="min-w-0">
                         <div class="flex items-center gap-2">
                             <span class="text-base font-bold tracking-tight text-slate-950"
@@ -290,7 +277,7 @@ onBeforeUnmount(() => {
                                 >
                                 <div
                                     v-if="projectMenuOpen"
-                                    class="absolute left-0 top-7 z-30 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-xl"
+                                    class="absolute right-0 top-7 z-30 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-xl"
                                 >
                                     <Link
                                         :href="route('projects.index')"
@@ -480,19 +467,5 @@ onBeforeUnmount(() => {
 
         <TaskCreateDialog :open="createOpen" @close="createOpen = false" />
         <ProjectCreateDialog :open="projectCreateOpen" @close="projectCreateOpen = false" />
-        <Transition
-            enter-active-class="transition duration-200"
-            enter-from-class="translate-y-2 opacity-0"
-            leave-active-class="transition duration-150"
-            leave-to-class="translate-y-2 opacity-0"
-        >
-            <div
-                v-if="toastVisible && flash"
-                class="fixed bottom-5 right-5 z-[120] max-w-sm rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-xl"
-                :class="page.props.flash?.error ? 'bg-red-600' : 'bg-slate-950'"
-            >
-                {{ flash }}
-            </div>
-        </Transition>
     </div>
 </template>
