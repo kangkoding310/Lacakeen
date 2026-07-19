@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import Modal from '@/Components/ui/Modal.vue';
+import { confirmDialog } from '@/composables/useDialog';
 import { usePermissions } from '@/composables/usePermissions';
 import { workspaceService } from '@/services/workspaceService';
 import type { WorkspaceDetail, WorkspaceMember, WorkspaceRole } from '@/types/workspace';
@@ -62,17 +63,23 @@ const updateRole = (member: WorkspaceMember, role: WorkspaceRole) =>
         { role },
         { preserveScroll: true }
     );
-const removeMember = (member: WorkspaceMember) => {
-    if (confirm(`Remove “${member.name}” from this workspace?`))
+const removeMember = async (member: WorkspaceMember) => {
+    const confirmed = await confirmDialog({
+        title: `Remove “${member.name}” from this workspace?`,
+        confirmText: 'Remove',
+        danger: true,
+    });
+    if (confirmed)
         workspaceService.removeMember(props.workspace.id, member.id, { preserveScroll: true });
 };
-const removeWorkspace = () => {
-    if (
-        confirm(
-            `Permanently delete “${props.workspace.name}” and all its projects? This cannot be undone.`
-        )
-    )
-        workspaceService.destroy(props.workspace.id);
+const removeWorkspace = async () => {
+    const confirmed = await confirmDialog({
+        title: `Permanently delete “${props.workspace.name}”?`,
+        description: 'All its projects will be deleted too. This cannot be undone.',
+        confirmText: 'Delete',
+        danger: true,
+    });
+    if (confirmed) workspaceService.destroy(props.workspace.id);
 };
 </script>
 

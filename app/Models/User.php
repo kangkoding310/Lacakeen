@@ -52,7 +52,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function conversations()
     {
         return $this->belongsToMany(Conversation::class, 'conversation_participants')
-            ->withPivot('last_read_at');
+            ->withPivot('last_read_at', 'deleted_at');
     }
 
     public function googleCalendarAccount()

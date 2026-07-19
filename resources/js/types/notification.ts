@@ -1,6 +1,8 @@
 export interface NotificationData {
     message: string;
     url?: string;
+    category?: 'assigned' | 'mention' | 'update';
+    task_id?: string;
 }
 
 export interface NotificationItem {

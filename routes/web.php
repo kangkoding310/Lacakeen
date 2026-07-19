@@ -57,6 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/chat/{conversation?}', [ChatController::class, 'index'])->name('chat');
     Route::post('/chat/{conversation}/messages', [ChatController::class, 'store'])->name('chat.messages.store');
     Route::post('/chat/conversations', [ConversationController::class, 'store'])->name('chat.conversations.store');
+    Route::delete('/chat/conversations/{conversation}', [ConversationController::class, 'destroy'])->name('chat.conversations.destroy');
     Route::get('/reporting', ReportingController::class)->name('reporting');
 
     Route::get('/workflow', [WorkflowController::class, 'index'])->name('workflow');

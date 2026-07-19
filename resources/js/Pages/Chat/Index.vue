@@ -3,21 +3,14 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Modal from '@/Components/ui/Modal.vue';
+import { confirmDialog } from '@/composables/useDialog';
 import { usePermissions } from '@/composables/usePermissions';
 import { conversationService } from '@/services/conversationService';
 import type { ChatMessage, ConversationSummary } from '@/types/conversation';
 import type { TaskAssignee } from '@/types/task';
 import { echo } from '@laravel/echo-vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import {
-    MessageSquarePlus,
-    MoreHorizontal,
-    Paperclip,
-    Phone,
-    Search,
-    Send,
-    Video,
-} from 'lucide-vue-next';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { ChevronLeft, MessageSquarePlus, Search, Send, Trash2, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -61,6 +54,44 @@ const send = () =>
     });
 const time = (date: string) =>
     new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(date));
+const otherParticipants = (conversation: ConversationSummary) =>
+    conversation.participants.filter((participant) => participant.id !== currentUser.value.id);
+
+// --- Search conversations ---
+const conversationSearch = ref('');
+const filteredConversations = computed(() => {
+    const query = conversationSearch.value.trim().toLowerCase();
+    if (!query) return conversations.value;
+    return conversations.value.filter((conversation) => {
+        const name =
+            conversation.name ||
+            otherParticipants(conversation)
+                .map((p) => p.name)
+                .join(', ');
+        return name.toLowerCase().includes(query);
+    });
+});
+
+// --- Close / delete conversation ---
+const closeConversation = () => {
+    activeConversation.value = null;
+    router.visit(route('chat'), { preserveScroll: true });
+};
+
+const deleteConversation = async () => {
+    const conversation = activeConversation.value;
+    if (!conversation) return;
+    const confirmed = await confirmDialog({
+        title: 'Delete this conversation?',
+        description: 'It will be removed from your inbox.',
+        confirmText: 'Delete',
+        danger: true,
+    });
+    if (confirmed) conversationService.destroy(conversation.id, { preserveScroll: true });
+};
+
+// --- Group members popup ---
+const memberListOpen = ref(false);
 
 // --- Start a new conversation (direct or group) ---
 const newConversationOpen = ref(false);
@@ -172,7 +203,10 @@ onBeforeUnmount(() => {
                     <div class="border-b border-slate-100 p-4">
                         <div class="flex items-center justify-between">
                             <h1 class="text-xl font-bold">Messages</h1>
-                            <div @click="newConversationOpen = true" class="flex items-center justify-center cursor-pointer w-10 h-10 rounded-lg bg-blue-600 text-white shadow-xl transition hover:bg-blue-700">
+                            <div
+                                @click="newConversationOpen = true"
+                                class="flex items-center justify-center cursor-pointer w-10 h-10 rounded-lg bg-blue-600 text-white shadow-xl transition hover:bg-blue-700"
+                            >
                                 <MessageSquarePlus class="h-5 w-5" />
                             </div>
                         </div>
@@ -180,6 +214,7 @@ onBeforeUnmount(() => {
                             <Search
                                 class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
                             /><input
+                                v-model="conversationSearch"
                                 class="ui-input bg-slate-50 pl-9"
                                 placeholder="Search conversations"
                             />
@@ -187,14 +222,14 @@ onBeforeUnmount(() => {
                     </div>
                     <div class="flex-1 overflow-y-auto p-2">
                         <Link
-                            v-for="conversation in conversations"
+                            v-for="conversation in filteredConversations"
                             :key="conversation.id"
                             :href="route('chat', conversation.id)"
                             class="flex items-center gap-3 rounded-xl p-3 transition hover:bg-slate-50"
                             :class="activeConversation?.id === conversation.id && 'bg-blue-50'"
                             ><div class="relative">
                                 <AvatarStack
-                                    :users="conversation.participants"
+                                    :users="otherParticipants(conversation)"
                                     :max="1"
                                     size="md"
                                 /><span
@@ -228,36 +263,54 @@ onBeforeUnmount(() => {
                     <header
                         class="flex h-[74px] items-center justify-between border-b border-slate-100 px-4 sm:px-6"
                     >
-                        <div class="flex items-center gap-3">
+                    <div class="flex items-center">
+                        <button
+                            class="ui-icon-button border-0"
+                            title="Close chat"
+                            @click="closeConversation"
+                        >
+                            <ChevronLeft class="h-4 w-4" /></button
+                        >
+                        <component
+                            :is="activeConversation.type === 'group' ? 'button' : 'div'"
+                            :type="activeConversation.type === 'group' ? 'button' : undefined"
+                            class="flex min-w-0 items-center gap-3 text-left"
+                            :class="
+                                activeConversation.type === 'group' &&
+                                'cursor-pointer rounded-xl p-1 -m-1 hover:bg-slate-50'
+                            "
+                            @click="activeConversation.type === 'group' && (memberListOpen = true)"
+                        >
                             <AvatarStack
-                                :users="activeConversation.participants"
+                                :users="otherParticipants(activeConversation)"
                                 :max="2"
                                 size="md"
                             />
-                            <div>
-                                <p class="text-sm font-bold">
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-bold">
                                     {{
                                         activeConversation.name ||
                                         (activeConversation.type === 'group'
-                                            ? activeConversation.participants
+                                            ? otherParticipants(activeConversation)
                                                   .map((p) => p.name)
                                                   .join(', ')
-                                            : 'Direct message')
+                                            : otherParticipants(activeConversation)[0]?.name)
                                     }}
                                 </p>
-                                <p class="text-[11px] text-emerald-600">
+                                <!-- <p class="text-[11px] text-emerald-600">
                                     {{ activeConversation.participants.length }} members · Active
                                     now
-                                </p>
+                                </p> -->
                             </div>
-                        </div>
+                        </component>
+                    </div>
                         <div class="flex gap-1">
-                            <button class="ui-icon-button border-0">
-                                <Phone class="h-4 w-4" /></button
-                            ><button class="ui-icon-button hidden border-0 sm:inline-flex">
-                                <Video class="h-4 w-4" /></button
-                            ><button class="ui-icon-button border-0">
-                                <MoreHorizontal class="h-4 w-4" />
+                            <button
+                                class="ui-icon-button border-0 !text-red-600"
+                                title="Delete conversation"
+                                @click="deleteConversation"
+                            >
+                                <Trash2 class="h-4 w-4" />
                             </button>
                         </div>
                     </header>
@@ -268,7 +321,9 @@ onBeforeUnmount(() => {
                                 :key="message.id"
                                 class="flex gap-3"
                                 :class="
-                                    message.sender_id === currentUser.id ? 'flex-row-reverse [&>div]:items-end' : '[&>div]:items-start'
+                                    message.sender_id === currentUser.id
+                                        ? 'flex-row-reverse [&>div]:items-end'
+                                        : '[&>div]:items-start'
                                 "
                             >
                                 <img
@@ -308,12 +363,7 @@ onBeforeUnmount(() => {
                         <div
                             class="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-slate-200 p-2 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10"
                         >
-                            <button
-                                type="button"
-                                class="grid h-9 w-9 shrink-0 place-items-center text-slate-400"
-                            >
-                                <Paperclip class="h-5 w-5" /></button
-                            ><textarea
+                            <textarea
                                 v-model="form.body"
                                 class="max-h-32 min-h-9 flex-1 resize-none border-0 bg-transparent py-2 text-sm outline-none focus:ring-0"
                                 rows="1"
@@ -408,6 +458,33 @@ onBeforeUnmount(() => {
                     >
                         {{ selectedMemberIds.length > 1 ? 'Create group' : 'Start conversation' }}
                     </button>
+                </div>
+            </div>
+        </Modal>
+        <Modal
+            :open="memberListOpen"
+            title="Group members"
+            :description="`${activeConversation?.participants.length ?? 0} people in this conversation`"
+            @close="memberListOpen = false"
+        >
+            <div
+                class="max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200"
+            >
+                <div
+                    v-for="member in activeConversation?.participants"
+                    :key="member.id"
+                    class="flex items-center gap-3 p-3"
+                >
+                    <img
+                        :src="
+                            member.avatar ||
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}`
+                        "
+                        class="h-8 w-8 rounded-full object-cover"
+                    />
+                    <p class="truncate text-sm font-semibold">
+                        {{ member.name }}{{ member.id === currentUser.id ? ' (you)' : '' }}
+                    </p>
                 </div>
             </div>
         </Modal>

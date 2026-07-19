@@ -33,6 +33,7 @@ class TaskAssignedNotification extends Notification implements ShouldQueue
             'message' => "You were assigned to {$this->task->code}",
             'url' => route('tasks.show', $this->task, false),
             'task_id' => $this->task->id,
+            'category' => 'assigned',
         ];
     }
 }

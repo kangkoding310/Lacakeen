@@ -50,6 +50,9 @@ a {
     .ui-button-secondary {
         @apply ui-button border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 focus:ring-slate-200/60;
     }
+    .ui-button-danger {
+        @apply ui-button bg-red-600 text-white shadow-sm shadow-red-600/20 hover:bg-red-700 focus:ring-red-500/20;
+    }
     .ui-icon-button {
         @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10;
     }
@@ -191,4 +194,8 @@ a {
     --dp-border-color: #e2e8f0;
     --dp-border-color-hover: #cbd5e1;
     --dp-border-color-focus: #3b82f6;
+}
+
+.fc-daygrid-day-events {
+    cursor: pointer;
 }

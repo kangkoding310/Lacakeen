@@ -3,7 +3,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import type { NotificationItem } from '@/types/notification';
 import type { Paginated } from '@/types/pagination';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { AtSign, CheckCircle2, Inbox, UserCheck } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
@@ -24,10 +24,15 @@ const filtered = computed(() =>
         (item) =>
             filter.value === 'all' ||
             (filter.value === 'unread' && !item.read_at) ||
-            (filter.value === 'mentions' && item.data.message?.includes('@')) ||
-            (filter.value === 'assigned' && item.data.message?.includes('assigned'))
+            (filter.value === 'mentions' && item.data.category === 'mention') ||
+            (filter.value === 'assigned' && item.data.category === 'assigned')
     )
 );
+const open = (item: NotificationItem) => {
+    if (!item.read_at) {
+        router.patch(route('notifications.read', item.id), {}, { preserveScroll: true });
+    }
+};
 </script>
 <template>
     <Head title="Inbox" />
@@ -64,6 +69,7 @@ const filtered = computed(() =>
                         :key="item.id"
                         :href="item.data.url || '#'"
                         class="flex items-start gap-4 p-5 hover:bg-slate-50"
+                        @click="open(item)"
                         ><span
                             class="mt-2 h-2 w-2 shrink-0 rounded-full"
                             :class="item.read_at ? 'bg-slate-200' : 'bg-blue-600'"

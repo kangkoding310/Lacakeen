@@ -9,7 +9,11 @@ class DemoNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(private readonly string $message, private readonly string $url) {}
+    public function __construct(
+        private readonly string $message,
+        private readonly string $url,
+        private readonly string $category = 'update'
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -18,6 +22,6 @@ class DemoNotification extends Notification
 
     public function toArray(object $notifiable): array
     {
-        return ['message' => $this->message, 'url' => $this->url];
+        return ['message' => $this->message, 'url' => $this->url, 'category' => $this->category];
     }
 }

@@ -7,6 +7,7 @@ import KanbanBoard from '@/Components/KanbanBoard.vue';
 import Modal from '@/Components/ui/Modal.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
 import TaskDetailDrawer from '@/Components/TaskDetailDrawer.vue';
+import { confirmDialog } from '@/composables/useDialog';
 import { usePermissions } from '@/composables/usePermissions';
 import { projectService } from '@/services/projectService';
 import { formatDate } from '@/utils/date';
@@ -185,9 +186,13 @@ const updateRole = (user: ProjectMember, role: ProjectRole) =>
         { role_in_project: role },
         { preserveScroll: true }
     );
-const removeMember = (user: ProjectMember) => {
-    if (confirm(`Remove ${user.name} from this project?`))
-        projectService.removeMember(props.project.id, user.id, { preserveScroll: true });
+const removeMember = async (user: ProjectMember) => {
+    const confirmed = await confirmDialog({
+        title: `Remove ${user.name} from this project?`,
+        confirmText: 'Remove',
+        danger: true,
+    });
+    if (confirmed) projectService.removeMember(props.project.id, user.id, { preserveScroll: true });
 };
 const saveProject = () =>
     edit.patch(route('projects.update', props.project.id), {
@@ -200,9 +205,14 @@ const toggleArchive = () =>
     projectService.update(props.project.id, {
         status: props.project.status === 'active' ? 'archived' : 'active',
     });
-const deleteProject = () => {
-    if (confirm(`Permanently delete “${props.project.name}” and all its tasks?`))
-        projectService.destroy(props.project.id);
+const deleteProject = async () => {
+    const confirmed = await confirmDialog({
+        title: `Permanently delete “${props.project.name}”?`,
+        description: 'All its tasks will be deleted too. This cannot be undone.',
+        confirmText: 'Delete',
+        danger: true,
+    });
+    if (confirmed) projectService.destroy(props.project.id);
 };
 const prettyDate = (date: string | null) =>
     formatDate(date, { month: 'short', day: '2-digit', year: '2-digit' }, 'No date');

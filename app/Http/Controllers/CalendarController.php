@@ -39,6 +39,23 @@ class CalendarController extends Controller
             'projects' => Project::visibleTo($request->user())->select('id', 'name', 'color')->get(),
             'members' => User::whereHas('projects', fn ($projects) => $projects->visibleTo($request->user()))->select('id', 'name', 'avatar')->get(),
             'filters' => $request->only(['project', 'assignee']),
+            'task' => Inertia::lazy(fn () => $this->loadTask($request)),
+        ]);
+    }
+
+    private function loadTask(Request $request): ?Task
+    {
+        if (! $request->task) {
+            return null;
+        }
+
+        $task = Task::visibleTo($request->user())->findOrFail($request->task);
+        $this->authorize('view', $task);
+
+        return $task->load([
+            'project:id,name,color', 'status:id,name,color', 'assignees:id,name,email,avatar',
+            'labels:id,name,color', 'comments.user:id,name,avatar', 'attachments',
+            'activityLogs.user:id,name,avatar', 'subtasks.status:id,name,color', 'subtasks.assignees:id,name,avatar',
         ]);
     }
 

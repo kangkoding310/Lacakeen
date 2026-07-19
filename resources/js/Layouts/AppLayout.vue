@@ -1,4 +1,5 @@
 <script setup>
+import AppDialog from '@/Components/ui/AppDialog.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import ProjectCreateDialog from '@/Components/ProjectCreateDialog.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
@@ -86,12 +87,12 @@ const toolItems = computed(() => [
         ? { label: 'Workspaces', route: 'workspaces.index', match: 'workspace*', icon: Building2 }
         : { label: 'Workspace', route: 'workspace.show', match: 'workspace*', icon: Building2 },
     { label: 'Inbox', route: 'inbox', match: 'inbox', icon: Mail },
-    {
-        label: 'Integrations',
-        route: 'integrations',
-        match: 'integrations*',
-        icon: GitBranch,
-    },
+    // {
+    //     label: 'Integrations',
+    //     route: 'integrations',
+    //     match: 'integrations*',
+    //     icon: GitBranch,
+    // },
 ]);
 const user = computed(() => page.props.auth.user);
 const projectNavigation = computed(
@@ -173,8 +174,10 @@ onBeforeUnmount(() => {
                 class="flex h-[78px] items-center border-b border-slate-100 px-5"
                 :class="collapsed ? 'justify-center' : 'justify-between'"
             >
-                <Link :href="route('dashboard')" class="flex min-w-0 items-center gap-3">
-                    <div class="rounded-xl p-[1px] bg-gradient-to-br from-blue-600 to-violet-600 text-lg font-black text-white shadow-lg shadow-blue-500/20">
+                <Link :href="route('dashboard')" class="flex min-w-0 items-center gap-3" tabIndex="-1">
+                    <div
+                        class="rounded-xl p-[1px] bg-gradient-to-br from-blue-600 to-violet-600 text-lg font-black text-white shadow-lg shadow-blue-500/20"
+                    >
                         <img
                             :src="logoPath"
                             alt="logo"
@@ -200,23 +203,16 @@ onBeforeUnmount(() => {
             </div>
 
             <nav class="flex-1 overflow-y-auto px-3 py-5">
-                <div
-                    v-for="(group, groupIndex) in [
-                        { label: 'Dashboard', items: dashboardItems },
-                        { label: 'Tools', items: toolItems },
-                    ]"
-                    :key="group.label"
-                    :class="groupIndex ? 'mt-7' : ''"
-                >
+                <div>
                     <p
                         v-if="!collapsed"
                         class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.15em] text-slate-400"
                     >
-                        {{ group.label }}
+                        Dashboard
                     </p>
                     <div class="space-y-1">
                         <Link
-                            v-for="item in group.items"
+                            v-for="item in dashboardItems"
                             :key="item.label"
                             :href="route(item.route)"
                             :title="collapsed ? item.label : undefined"
@@ -328,6 +324,42 @@ onBeforeUnmount(() => {
                                 v-if="!collapsed"
                                 class="ml-auto h-4 w-4 text-slate-300"
                             />
+                        </Link>
+                    </div>
+                </div>
+
+                <div class="mt-7">
+                    <p
+                        v-if="!collapsed"
+                        class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.15em] text-slate-400"
+                    >
+                        Tools
+                    </p>
+                    <div class="space-y-1">
+                        <Link
+                            v-for="item in toolItems"
+                            :key="item.label"
+                            :href="route(item.route)"
+                            :title="collapsed ? item.label : undefined"
+                            class="relative flex h-10 items-center rounded-xl text-sm font-medium transition"
+                            :class="[
+                                collapsed ? 'justify-center px-0' : 'gap-3 px-3',
+                                active(item.match)
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950',
+                            ]"
+                        >
+                            <span
+                                v-if="active(item.match)"
+                                class="absolute -left-3 h-5 w-1 rounded-r-full bg-blue-600"
+                            />
+                            <component :is="item.icon" class="h-[18px] w-[18px] shrink-0" />
+                            <span v-if="!collapsed" class="flex-1">{{ item.label }}</span>
+                            <span
+                                v-if="item.badge?.()"
+                                class="grid min-w-5 place-items-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                                >{{ item.badge() }}</span
+                            >
                         </Link>
                     </div>
                 </div>
@@ -467,5 +499,6 @@ onBeforeUnmount(() => {
 
         <TaskCreateDialog :open="createOpen" @close="createOpen = false" />
         <ProjectCreateDialog :open="projectCreateOpen" @close="projectCreateOpen = false" />
+        <AppDialog />
     </div>
 </template>

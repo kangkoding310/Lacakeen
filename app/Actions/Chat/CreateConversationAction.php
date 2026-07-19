@@ -22,6 +22,8 @@ class CreateConversationAction
                 ->first();
 
             if ($existing) {
+                $existing->participants()->updateExistingPivot($creator->id, ['deleted_at' => null]);
+
                 return $existing;
             }
         }

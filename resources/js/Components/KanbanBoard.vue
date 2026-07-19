@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import TaskCard from '@/Components/TaskCard.vue';
 import draggable from 'vuedraggable';
+import { confirmDialog } from '@/composables/useDialog';
 import { router } from '@inertiajs/vue3';
 import { taskService } from '@/services/taskService';
 import { taskStatusService } from '@/services/taskStatusService';
@@ -19,8 +20,9 @@ const props = withDefaults(
         statuses?: ProjectStatusColumn[];
         project?: unknown;
         contained?: boolean;
+        searchQuery?: string;
     }>(),
-    { statuses: () => [] }
+    { statuses: () => [], searchQuery: '' }
 );
 const emit = defineEmits<{
     'open-task': [task: Task];
@@ -103,10 +105,19 @@ const saveRename = (column: ProjectStatusColumn) => {
         }
     );
 };
-const remove = (column: ProjectStatusColumn) => {
+const matchesSearch = (task: Task) => {
+    const query = props.searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    return task.title.toLowerCase().includes(query) || task.code.toLowerCase().includes(query);
+};
+const remove = async (column: ProjectStatusColumn) => {
     closeMenus();
-    if (confirm(`Delete “${column.name}”?`))
-        taskStatusService.destroy(column.id, { preserveScroll: true });
+    const confirmed = await confirmDialog({
+        title: `Delete “${column.name}”?`,
+        confirmText: 'Delete',
+        danger: true,
+    });
+    if (confirmed) taskStatusService.destroy(column.id, { preserveScroll: true });
 };
 onMounted(() => {
     document.addEventListener('pointerdown', closeMenus);
@@ -204,7 +215,11 @@ onBeforeUnmount(() => {
                 :animation="180"
                 @change="changed($event, column)"
                 ><template #item="{ element }">
-                    <TaskCard :task="element" @open="emit('open-task', $event as Task)" />
+                    <TaskCard
+                        v-show="matchesSearch(element)"
+                        :task="element"
+                        @open="emit('open-task', $event as Task)"
+                    />
                 </template>
             </draggable>
             <button

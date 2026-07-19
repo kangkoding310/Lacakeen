@@ -5,6 +5,7 @@ import AppSelect from '@/Components/ui/AppSelect.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import TaskCreateDialog from '@/Components/TaskCreateDialog.vue';
 import { formatShortDate } from '@/utils/date';
+import { confirmDialog } from '@/composables/useDialog';
 import { taskService } from '@/services/taskService';
 import { TASK_PRIORITY_BADGE_CLASS, TASK_PRIORITY_OPTIONS } from '@/constants/taskPriority';
 import type { ProjectSummary, ProjectMember } from '@/types/models';
@@ -75,8 +76,13 @@ const applyBulk = () => {
         },
     });
 };
-const bulkDelete = () => {
-    if (!confirm(`Delete ${selected.value.length} tasks?`)) return;
+const bulkDelete = async () => {
+    const confirmed = await confirmDialog({
+        title: `Delete ${selected.value.length} tasks?`,
+        confirmText: 'Delete',
+        danger: true,
+    });
+    if (!confirmed) return;
     bulk.action = 'delete';
     applyBulk();
 };
@@ -234,7 +240,7 @@ const formatTaskDate = (date: string | null) => formatShortDate(date, 'No due da
                                 >
                             </td>
                             <td class="px-3 py-4">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 whitespace-nowrap">
                                     <span
                                         class="h-2 w-2 rounded-full"
                                         :style="{ backgroundColor: task.project.color }"
@@ -243,7 +249,7 @@ const formatTaskDate = (date: string | null) => formatShortDate(date, 'No due da
                             </td>
                             <td class="px-3 py-4">
                                 <span
-                                    class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600"
+                                    class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 whitespace-nowrap"
                                     >{{ task.status.name }}</span
                                 >
                             </td>
@@ -256,7 +262,7 @@ const formatTaskDate = (date: string | null) => formatShortDate(date, 'No due da
                             </td>
                             <td class="px-3 py-4"><AvatarStack :users="task.assignees" /></td>
                             <td
-                                class="px-3 py-4 text-xs font-medium"
+                                class="px-3 py-4 text-xs font-medium whitespace-nowrap"
                                 :class="
                                     task.due_date && new Date(task.due_date) < new Date()
                                         ? 'text-red-500'

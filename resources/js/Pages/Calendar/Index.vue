@@ -2,9 +2,11 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppSelect from '@/Components/ui/AppSelect.vue';
 import Modal from '@/Components/ui/Modal.vue';
+import TaskDetailDrawer from '@/Components/TaskDetailDrawer.vue';
 import { calendarService } from '@/services/calendarService';
+import { useTaskComposer } from '@/composables/useTaskComposer';
 import type { CalendarEventItem, CalendarFilters } from '@/types/calendarEvent';
-import type { TaskProjectRef } from '@/types/task';
+import type { Task, TaskProjectRef } from '@/types/task';
 import FullCalendar from '@fullcalendar/vue3';
 import type { CalendarOptions } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -32,9 +34,13 @@ const props = defineProps<{
     projects: TaskProjectRef[];
     members: CalendarMember[];
     filters: CalendarFilters;
+    task?: Task | null;
 }>();
+const { findProject } = useTaskComposer();
 const createOpen = ref(false);
 const selectedEvent = ref<FullCalendarEventApi | null>(null);
+const taskDrawerOpen = ref(false);
+const taskStatuses = computed(() => findProject(props.task?.project_id)?.statuses ?? []);
 const query = useForm({
     project: props.filters.project || '',
     assignee: props.filters.assignee || '',
@@ -72,7 +78,7 @@ const options: CalendarOptions = {
     },
     eventClick: ({ event }) => {
         const extendedProps = event.extendedProps as { type: string; description?: string | null };
-        if (extendedProps.type === 'task') router.visit(route('tasks.show', event.id));
+        if (extendedProps.type === 'task') openTask(event.id);
         else
             selectedEvent.value = {
                 id: event.id,
@@ -82,6 +88,19 @@ const options: CalendarOptions = {
             };
     },
 };
+const openTask = (taskId: string) =>
+    router.get(
+        route('calendar'),
+        { ...query.data(), task: taskId },
+        {
+            only: ['task'],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onSuccess: () => (taskDrawerOpen.value = true),
+        }
+    );
+const closeTaskDrawer = () => (taskDrawerOpen.value = false);
 const submit = () =>
     form.post(route('calendar.events.store'), {
         preserveScroll: true,
@@ -186,5 +205,11 @@ const applyFilters = () => calendarService.list(query.data(), { preserveState: t
                 Starts {{ selectedEvent?.start?.toLocaleString() }}
             </p></Modal
         >
+        <TaskDetailDrawer
+            :open="taskDrawerOpen"
+            :task="task ?? null"
+            :statuses="taskStatuses"
+            @close="closeTaskDrawer"
+        />
     </AppLayout>
 </template>

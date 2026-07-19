@@ -4,6 +4,7 @@ import AppSelect from '@/Components/ui/AppSelect.vue';
 import RichTextEditor from '@/Components/ui/RichTextEditor.vue';
 import SubtaskList from '@/Components/SubtaskList.vue';
 import { formatMediumDate } from '@/utils/date';
+import { confirmDialog } from '@/composables/useDialog';
 import { useTaskComposer } from '@/composables/useTaskComposer';
 import { taskService } from '@/services/taskService';
 import { TASK_PRIORITY_OPTIONS } from '@/constants/taskPriority';
@@ -82,8 +83,15 @@ const onAttachmentUpdate = (files: FilePondFile[]) => {
     attachment.attachment = file;
     upload();
 };
-const remove = () => {
-    if (props.task && confirm(`Delete ${props.task.code}?`)) taskService.destroy(props.task.id);
+const remove = async () => {
+    const task = props.task;
+    if (!task) return;
+    const confirmed = await confirmDialog({
+        title: `Delete ${task.code}?`,
+        confirmText: 'Delete',
+        danger: true,
+    });
+    if (confirmed) taskService.destroy(task.id);
 };
 const formatTaskDate = (date: string | null) => formatMediumDate(date);
 </script>
@@ -236,7 +244,7 @@ const formatTaskDate = (date: string | null) => formatMediumDate(date);
                                 :allow-revert="false"
                                 :allow-reorder="false"
                                 max-file-size="10MB"
-                                label-idle="Drag &amp; drop a file or <span class=&quot;filepond--label-action&quot;>browse</span>"
+                                label-idle='Drag &amp; drop a file or <span class="filepond--label-action">browse</span>'
                                 label-max-file-size-exceeded="File is too large"
                                 @updatefiles="onAttachmentUpdate"
                             />

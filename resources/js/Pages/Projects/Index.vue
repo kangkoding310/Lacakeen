@@ -3,6 +3,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Modal from '@/Components/ui/Modal.vue';
+import { confirmDialog } from '@/composables/useDialog';
 import { usePermissions } from '@/composables/usePermissions';
 import { projectService } from '@/services/projectService';
 import type { ProjectListItem } from '@/types/project';
@@ -71,9 +72,14 @@ const toggleArchive = (project: ProjectListItem) =>
         { status: project.status === 'active' ? 'archived' : 'active' },
         { preserveScroll: true }
     );
-const remove = (project: ProjectListItem) => {
-    if (confirm(`Permanently delete “${project.name}” and all its tasks?`))
-        projectService.destroy(project.id);
+const remove = async (project: ProjectListItem) => {
+    const confirmed = await confirmDialog({
+        title: `Permanently delete “${project.name}”?`,
+        description: 'All its tasks will be deleted too. This cannot be undone.',
+        confirmText: 'Delete',
+        danger: true,
+    });
+    if (confirmed) projectService.destroy(project.id);
 };
 </script>
 

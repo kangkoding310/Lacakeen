@@ -29,7 +29,7 @@ const formatTaskDate = (date: string | null) => formatLongDate(date, 'Not set');
                 class="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600"
                 ><ArrowLeft class="h-4 w-4" />Back to tasks</Link
             >
-            <div class="grid gap-5 lg:grid-cols-[1fr_320px]">
+            <div class="grid gap-5 2xl:grid-cols-[1fr_320px] md:grid-cols-1">
                 <main class="ui-card p-6 sm:p-8">
                     <div class="flex items-start justify-between gap-4">
                         <div>
@@ -101,8 +101,8 @@ const formatTaskDate = (date: string | null) => formatLongDate(date, 'Not set');
                         </div>
                     </section>
                 </main>
-                <aside class="space-y-4">
-                    <div class="ui-card p-5">
+                <aside class="2xl:space-y-4 2xl:block 2xl:gap-0 flex items-start gap-4">
+                    <div class="ui-card p-5 flex-1">
                         <h2 class="text-sm font-bold">Details</h2>
                         <dl class="mt-5 space-y-4 text-sm">
                             <div class="flex justify-between gap-4">
@@ -131,7 +131,7 @@ const formatTaskDate = (date: string | null) => formatLongDate(date, 'Not set');
                             </div>
                         </dl>
                     </div>
-                    <div class="ui-card p-5">
+                    <div class="ui-card p-5 flex-1">
                         <h2 class="flex items-center gap-2 text-sm font-bold">
                             <Paperclip class="h-4 w-4" />Attachments
                         </h2>
